@@ -1,0 +1,36 @@
+# === Dependencias ===
+node_modules/
+
+# === Variables de entorno (¡NUNCA subir credenciales!) ===
+.env
+.env.*
+!.env.example
+
+# === Build / compilado ===
+dist/
+build/
+*.tsbuildinfo
+
+# === Prisma (cliente generado) ===
+# El cliente se regenera con "npx prisma generate", no hace falta subirlo
+node_modules/.prisma/
+
+# === Logs ===
+*.log
+npm-debug.log*
+logs/
+
+# === Archivos del sistema / editor ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# === Archivos temporales de prueba ===
+test-*.mts
+test_*.mjs
+apply_sql*.py
+seed_sql.py
+
+# === Estado interno del asistente (no es parte del proyecto) ===
+ESTADO.md
