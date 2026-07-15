@@ -1,5 +1,0 @@
-{
-  "buildCommand": "cd estatecall-frontend/dashboard && npm run build",
-  "outputDirectory": "estatecall-frontend/dashboard",
-  "framework": "nextjs"
-}
