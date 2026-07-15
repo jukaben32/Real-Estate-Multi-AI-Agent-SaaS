@@ -34,3 +34,8 @@ seed_sql.py
 
 # === Estado interno del asistente (no es parte del proyecto) ===
 ESTADO.md
+
+# === Frontend (landing + dashboard Next.js) ===
+estatecall-frontend/**/node_modules/
+estatecall-frontend/**/.env
+estatecall-frontend/**/.next/
