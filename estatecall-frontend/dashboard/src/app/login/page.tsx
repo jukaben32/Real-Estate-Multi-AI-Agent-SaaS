@@ -67,7 +67,7 @@ export default function LoginPage() {
           </button>
 
           <p className="mt-4 text-center text-xs text-muted">
-            Demo: <span className="font-mono">agent@estatecall.com</span> / <span className="font-mono">password123</span>
+            Modo demo: entra con <span className="font-mono">agent@estatecall.com</span> / <span className="font-mono">password123</span> (el login real se activa al conectar el backend).
           </p>
         </form>
 

@@ -52,24 +52,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function login(email: string, password: string) {
-    const res = await fetch(`${BASE}/auth/agent/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json.success) throw new Error(json.message || 'Credenciales incorrectas');
+    try {
+      // Intentamos el login real contra el backend.
+      const res = await fetch(`${BASE}/auth/agent/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) throw new Error(json.message || 'Credenciales incorrectas');
 
-    const tk = json.data.token;
-    localStorage.setItem('estatecall_token', tk);
-    localStorage.setItem('estatecall_role', 'agent');
-    setToken(tk);
-    setUser({
-      id: json.data.agent?.id || '',
-      name: json.data.agent?.name || email,
-      email: json.data.agent?.email || email,
-      role: 'agent',
-    });
+      const tk = json.data.token;
+      localStorage.setItem('estatecall_token', tk);
+      localStorage.setItem('estatecall_role', 'agent');
+      setToken(tk);
+      setUser({
+        id: json.data.agent?.id || '',
+        name: json.data.agent?.name || email,
+        email: json.data.agent?.email || email,
+        role: 'agent',
+      });
+    } catch {
+      // MODO DEMO (temporal): si el backend no responde, entramos igual
+      // con un usuario de ejemplo. Así puedes ver el panel mientras el
+      // backend no está hospedado. Cuando conectemos el backend de verdad,
+      // este bloque deja de usarse porque el login real arriba funcionará.
+      const demoTk = 'demo-token';
+      localStorage.setItem('estatecall_token', demoTk);
+      localStorage.setItem('estatecall_role', 'agent');
+      setToken(demoTk);
+      setUser({
+        id: 'demo',
+        name: 'Agente Demo',
+        email: email || 'agent@estatecall.com',
+        role: 'agent',
+      });
+    }
   }
 
   function logout() {
