@@ -526,11 +526,11 @@
     let currentRole = 'agent'; // 'agent' o 'client'
 
     function openLogin(role) {
-      currentRole = role;
-      syncRoleTabs();
-      errorBox.classList.add('hidden');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
+      // Opción A: el login real vive en el dashboard del agente (Next.js).
+      // La landing es estática; avisamos con honestidad en vez de intentar
+      // llamar a localhost:4000, que no existe en el deploy de Vercel.
+      // El modal y el formulario quedan abajo para reutilizarlos en el dashboard.
+      showToast('Panel del agente en construcción. Próximamente 🚧');
     }
     function closeLogin() {
       modal.classList.add('hidden');
