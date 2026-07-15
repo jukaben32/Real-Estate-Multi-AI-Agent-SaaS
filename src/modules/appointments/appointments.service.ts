@@ -10,7 +10,10 @@ function formatDate(date: Date) {
 }
 
 async function notifyAgent(agentId: string, type: string, message: string, metadata?: Record<string, unknown>) {
-  await prisma.notification.create({ data: { agentId, type, message, metadata } });
+  // metadata es un campo JSON opcional: solo lo incluimos si viene definido
+  await prisma.notification.create({
+    data: { agentId, type, message, ...(metadata ? { metadata: metadata as any } : {}) },
+  });
 }
 
 export const appointmentsService = {
