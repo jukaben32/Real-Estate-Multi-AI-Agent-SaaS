@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // El lockfile del backend queda arriba; fijamos la raíz para Turbopack.
+  turbopack: { root: "./" },
 };
 
 export default nextConfig;
