@@ -1,6 +1,7 @@
 # ESTATECALL — ESTADO DEL PROYECTO
 
-> Última actualización: julio 2026, tras la sustitución completa del stack.
+> Última actualización: julio 2026, tras completar las páginas de dashboard que
+> faltaban (ver sección "Dashboard completo" más abajo).
 
 ## RESUMEN RÁPIDO
 
@@ -8,8 +9,9 @@ El backend Express + Prisma **ya no existe**. Fue reemplazado por completo por u
 app **Next.js 14 full-stack** (el starter Real-Estate-AI-Calling-Agent-SaaS,
 implementado). Todo vive ahora en un solo proyecto: frontend, API y lógica de negocio.
 
-Fase actual: **construir el frontend nuevo** y dejar el deploy de Vercel apuntando a
-esta app.
+El dashboard ya tiene las 14 secciones de su barra lateral implementadas (antes solo
+3 de 14 existían — ver detalle abajo). Fase actual: **ejecutar el schema en Supabase,
+corregir el deploy de Vercel y terminar el frontend público/landing**.
 
 ---
 
@@ -33,8 +35,9 @@ Repo: https://github.com/jukaben32/Real-Estate-Multi-AI-Agent-SaaS (rama `main`)
 src/
   app/
     (auth)/login, (auth)/signup     Autenticación
-    (dashboard)/dashboard/          Panel: listings, ai-agents
+    (dashboard)/dashboard/          Panel completo, 14 secciones (ver abajo)
     sites/[slug]/                   Website builder (sitio público por negocio)
+    embed/[businessId]/             Página minimal para iframe del widget en sitios externos
     widget-demo/                    Demo del widget de voz
     api/                            Rutas de API (ver abajo)
   services/                         Acceso a datos (Supabase)
@@ -46,8 +49,35 @@ src/
   middleware.ts                     Sesión y protección de rutas
 supabase/
   00_drop_legacy_prisma_tables.sql  Limpieza del esquema viejo (ejecutar 1º)
-  schema.sql                        Esquema completo, 17 tablas (ejecutar 2º)
+  schema.sql                        Esquema completo, 18 tablas (ejecutar 2º)
 ```
+
+### Dashboard completo (14/14 secciones)
+
+El sidebar (`src/components/DashboardSidebar.tsx`) ya listaba las 14 secciones desde
+antes, pero solo 3 tenían página real (Overview, Listings, AI Agents). Se agregaron
+las 11 que faltaban, todas sobre servicios/tablas que ya existían en el schema
+(salvo `business_services`, nueva — ver abajo):
+
+| Sección | Ruta | Servicio |
+|---|---|---|
+| Analytics | `/dashboard/analytics` | gráficas (recharts) sobre `conversations` + `appointments` |
+| Call Log | `/dashboard/call-log` | `conversations` + `conversation_messages` (transcript expandible) |
+| Viewings | `/dashboard/viewings` | `appointments` (cambiar estado: completed/no_show/cancelled) |
+| Schedule | `/dashboard/schedule` | `business_availability` (horario semanal que usa el agente IA) |
+| Clients | `/dashboard/clients` | `clients` (leads capturados por el agente) |
+| Services | `/dashboard/services` | `business_services` (**tabla nueva**, ver abajo) |
+| Knowledge | `/dashboard/knowledge` | `knowledge_documents` |
+| Widget | `/dashboard/widget` | `widgets` + snippet de embed (`/embed/[businessId]`) |
+| Website | `/dashboard/website` | `websites` (editor del sitio público en `/sites/[slug]`) |
+| Plan | `/dashboard/plan` | `business_subscriptions` + Stripe Checkout/Portal |
+| Notifications | `/dashboard/notifications` | `notifications` |
+
+**Tabla nueva:** `business_services` (sección 18 de `schema.sql`) — catálogo de
+servicios que el agente IA puede ofrecer (ej. "Property Viewing", "Investment
+Consultation"), independiente de los listings. Es additiva: no rompe el orden de
+ejecución documentado en "Base de datos" más abajo, solo hay que correr el
+`schema.sql` actualizado.
 
 ## RUTAS DE API
 
@@ -57,9 +87,18 @@ supabase/
 | `/api/agents/[agentId]/session` | Abre sesión de voz realtime |
 | `/api/ai/tools` | Herramientas que el agente ejecuta durante la llamada |
 | `/api/listings` · `/api/listings/[listingId]` | CRUD de propiedades |
+| `/api/appointments/[appointmentId]` | Cambiar estado de una viewing |
+| `/api/conversations/[conversationId]/messages` | Transcript de una llamada |
+| `/api/availability` | GET/PUT horario semanal (Schedule) |
+| `/api/knowledge` · `/api/knowledge/[documentId]` | CRUD knowledge base |
+| `/api/notifications` · `/api/notifications/[notificationId]` | Listar / marcar leídas |
+| `/api/services` · `/api/services/[serviceId]` | CRUD de servicios del negocio |
+| `/api/widget` | GET/PUT config del widget (dueño del negocio) |
+| `/api/widget/[businessId]/config` | Config pública que consume el script embebido |
+| `/api/website` | GET/PUT config del website builder |
 | `/api/billing/checkout` | Checkout de Stripe |
+| `/api/billing/portal` | Billing Portal de Stripe (gestionar suscripción) |
 | `/api/stripe/webhook` | Webhook de Stripe (requiere `STRIPE_WEBHOOK_SECRET`) |
-| `/api/widget/[businessId]/config` | Configuración del widget embebible |
 
 ---
 

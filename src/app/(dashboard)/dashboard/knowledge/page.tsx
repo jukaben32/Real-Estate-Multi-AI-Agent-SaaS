@@ -1,0 +1,25 @@
+import { createClient } from '@/lib/supabase/server'
+import { getBusinessForOwner } from '@/services/businesses'
+import { listKnowledgeDocuments } from '@/services/knowledge'
+import { KnowledgeManager } from '@/components/KnowledgeManager'
+
+export default async function KnowledgePage() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const business = await getBusinessForOwner(supabase, user!.id)
+  if (!business) return null
+
+  const documents = await listKnowledgeDocuments(supabase, business.id)
+
+  return (
+    <div className="card-surface p-4">
+      <div className="mb-4">
+        <h1 className="font-semibold text-lg">Knowledge Base</h1>
+        <p className="text-sm text-[var(--text-3)]">{documents.length} documents your AI agent can ground answers in</p>
+      </div>
+      <KnowledgeManager initialDocuments={documents} />
+    </div>
+  )
+}
