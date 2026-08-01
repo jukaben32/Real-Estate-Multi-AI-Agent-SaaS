@@ -128,6 +128,15 @@ El schema ya está aplicado en el proyecto real de Supabase (`elrvxpgxlnyvfsfufn
 limpiar, así que `00_drop_legacy_prisma_tables.sql` no hizo falta correrlo — se deja
 en el repo por si se necesita en otro entorno que sí tenga el esquema viejo.
 
+### 1b. Signup no creaba usuario — ✅ resuelto (1 ago 2026)
+La confirmación de email estaba activada en Supabase Auth (`mailer_autoconfirm: false`),
+así que `signUp()` creaba el usuario pero sin sesión activa hasta confirmar el correo —
+y el flujo de `/signup` (`src/app/(auth)/signup/page.tsx`) asume sesión inmediata para
+crear el `business` (si no, la RLS de `businesses` rechaza el insert porque `auth.uid()`
+es null). Se desactivó la confirmación de email (`mailer_autoconfirm: true`) para que el
+signup dé sesión al instante, y se corrigió `site_url` (apuntaba a `localhost:3000`) y
+`uri_allow_list` (vacío) para incluir el dominio real de producción y el del preview.
+
 ### 2. Deploy en Vercel — ✅ resuelto (1 ago 2026)
 La causa real no era el Output Directory (ya estaba en default) sino que el
 **Framework Preset del proyecto estaba en "Express"** (el backend viejo), así que
