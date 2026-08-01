@@ -140,30 +140,40 @@ Para pasar a producción: mergear el PR a `main` (o hacer redeploy manual del ú
 commit de `main` en el dashboard de Vercel) — con el framework ya corregido y las
 env vars cargadas, el deploy de producción debería funcionar igual que el preview.
 
-### 3. Variables de entorno que todavía faltan (bloqueante para funcionalidad completa)
+### 3. Stripe — ✅ resuelto (1 ago 2026)
+`STRIPE_SECRET_KEY` y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (modo test) cargadas en
+Vercel. El webhook endpoint se creó vía API de Stripe apuntando a
+`https://real-estate-multi-ai-agent-saa-s.vercel.app/api/stripe/webhook`, escuchando
+`checkout.session.completed`, `customer.subscription.updated` y
+`customer.subscription.deleted` (los mismos que maneja
+`syncSubscriptionFromStripeEvent` en `src/services/billing.ts`); `STRIPE_WEBHOOK_SECRET`
+ya cargado también. Son keys de **test mode** — para cobrar de verdad hay que repetir
+el proceso con las keys de modo live desde dashboard.stripe.com (o pedírmelo).
+
+### 4. Variables de entorno que todavía faltan (bloqueante para funcionalidad completa)
 Con lo cargado hoy, el dashboard funciona (auth, listings, agentes, viewings, schedule,
-clients, services, knowledge, widget config, website, notifications — todo lectura y
-escritura contra Supabase). Sin estas tres, algunas funciones fallan de forma esperada:
+clients, services, knowledge, widget config, website, notifications, plan/billing con
+Stripe test — todo lectura y escritura contra Supabase/Stripe reales). Sin esto, dos
+funciones fallan de forma esperada:
 
 | Variable | Bloquea | Dónde conseguirla |
 |---|---|---|
 | `OPENAI_API_KEY` | La voz del agente IA (Realtime): `/api/agents/[agentId]/session`, el widget de voz, `widget-demo`, `/embed/[businessId]` | platform.openai.com/api-keys |
-| `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | Upgrade de plan y checkout del website builder (`/dashboard/plan`), portal de facturación, el webhook que sincroniza el plan tras pagar | dashboard.stripe.com/apikeys |
 | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Emails de confirmación de cita y de lead nuevo (`src/services/email.ts`) — no rompen el flujo, simplemente no se envía el correo | resend.com/api-keys |
 
 Cuando se agreguen, avisar para cargarlas también en Vercel (mismo proceso que se
-usó hoy con las de Supabase).
+usó hoy con las de Supabase y Stripe).
 
-Luego cargar las variables de entorno y hacer Redeploy sin caché.
-No hay que borrar el proyecto de Vercel: se perdería el subdominio.
-
-### 3. Frontend nuevo
+### 6. Frontend nuevo
 La landing actual es la del starter, en inglés y genérica. Se está construyendo una
 propia.
 
-### 4. Seguridad
-Rotar los tokens que fueron expuestos en chats (GitHub PAT, Vercel, Supabase service
-role y access token). Es la segunda vez que ocurre.
+### 7. Seguridad (bloqueante, urgente)
+Rotar TODOS los tokens que fueron expuestos en el chat: GitHub PAT, Vercel access
+token, Supabase service role key y access token (`sbp_...`), y las keys de Stripe test
+mode. Ya van varias veces que se pegan credenciales reales directo en la conversación
+— la próxima vez, cargarlas directo en los dashboards de Vercel/Supabase/Stripe en vez
+de pasarlas por acá.
 
 ---
 
