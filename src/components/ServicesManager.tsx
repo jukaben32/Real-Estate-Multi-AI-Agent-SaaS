@@ -40,7 +40,7 @@ export function ServicesManager({ initialServices }: { initialServices: Business
   }
 
   async function remove(serviceId: string) {
-    if (!confirm('Delete this service?')) return
+    if (!confirm('¿Eliminar este servicio?')) return
     const res = await fetch(`/api/services/${serviceId}`, { method: 'DELETE' })
     if (res.ok) setServices((prev) => prev.filter((s) => s.id !== serviceId))
   }
@@ -49,39 +49,39 @@ export function ServicesManager({ initialServices }: { initialServices: Business
     <div>
       {!showForm && (
         <button className="btn-primary mb-4" onClick={() => setShowForm(true)}>
-          + New Service
+          + Nuevo servicio
         </button>
       )}
 
       {showForm && (
         <form onSubmit={handleCreate} className="card-surface p-4 mb-4 grid grid-cols-2 gap-3">
           <input
-            placeholder="Service name (e.g. Property Viewing)"
+            placeholder="Nombre del servicio (ej. Visita a propiedad)"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="col-span-2 border rounded-lg px-3 py-2"
+            className="input-field col-span-2"
             required
           />
           <input
-            placeholder="Description"
+            placeholder="Descripción"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="col-span-2 border rounded-lg px-3 py-2"
+            className="input-field col-span-2"
           />
           <input
             type="number"
-            placeholder="Price (optional)"
+            placeholder="Precio (opcional)"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="border rounded-lg px-3 py-2"
+            className="input-field"
             min={0}
           />
           <div className="flex gap-2 justify-end">
             <button type="button" onClick={() => setShowForm(false)} className="btn-secondary">
-              Cancel
+              Cancelar
             </button>
             <button type="submit" className="btn-primary">
-              Create
+              Crear
             </button>
           </div>
         </form>
@@ -91,7 +91,7 @@ export function ServicesManager({ initialServices }: { initialServices: Business
         {services.map((service) => (
           <div key={service.id} className="card-surface p-3 flex items-center justify-between">
             <div>
-              <p className="font-medium">{service.name}</p>
+              <p className="font-medium text-[var(--text-1)]">{service.name}</p>
               <p className="text-xs text-[var(--text-3)]">
                 {service.description}
                 {service.price != null ? ` · $${service.price.toLocaleString()}` : ''}
@@ -100,21 +100,21 @@ export function ServicesManager({ initialServices }: { initialServices: Business
             <div className="flex items-center gap-2">
               <button
                 onClick={() => toggleActive(service)}
-                className={`text-xs rounded-full px-3 py-1 ${
-                  service.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                className={`badge border-transparent ${
+                  service.is_active ? 'bg-[var(--teal-50)] text-[var(--teal-800)]' : 'bg-[var(--bg-raised)] text-[var(--text-3)]'
                 }`}
               >
-                {service.is_active ? 'Active' : 'Inactive'}
+                {service.is_active ? 'Activo' : 'Inactivo'}
               </button>
               <button onClick={() => remove(service.id)} className="text-red-600 text-sm">
-                Delete
+                Eliminar
               </button>
             </div>
           </div>
         ))}
         {services.length === 0 && (
           <p className="text-sm text-[var(--text-3)]">
-            No services yet — add what your AI agent should offer callers.
+            Todavía no hay servicios — agrega lo que tu agente IA debería ofrecer a quien llama.
           </p>
         )}
       </div>

@@ -14,11 +14,11 @@ export default async function ServicesPage() {
   const services = await listServicesForBusiness(supabase, business.id)
 
   return (
-    <div className="card-surface p-4">
+    <div className="card-surface p-5">
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Services</h1>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Servicios</h1>
         <p className="text-sm text-[var(--text-3)]">
-          What your AI agents can offer callers, independent of any single listing.
+          Lo que tus agentes IA pueden ofrecer a quien llama, sin depender de una sola propiedad.
         </p>
       </div>
       <ServicesManager initialServices={services} />

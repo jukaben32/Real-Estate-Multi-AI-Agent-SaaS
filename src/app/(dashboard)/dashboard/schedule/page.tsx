@@ -14,11 +14,11 @@ export default async function SchedulePage() {
   const availability = await listAvailabilityForBusiness(supabase, business.id)
 
   return (
-    <div className="card-surface p-4">
+    <div className="card-surface p-5">
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Schedule</h1>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Horario</h1>
         <p className="text-sm text-[var(--text-3)]">
-          Weekly hours your AI agent offers when booking a viewing. Turn a day off to stop offering slots on it.
+          Horario semanal que tu agente IA ofrece al agendar una cita. Desactiva un día para dejar de ofrecer turnos ese día.
         </p>
       </div>
       <ScheduleEditor initialAvailability={availability} />

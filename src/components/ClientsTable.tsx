@@ -4,10 +4,10 @@ import { useMemo, useState } from 'react'
 import type { Client } from '@/types'
 
 const SOURCE_LABELS: Record<string, string> = {
-  ai_call: 'AI Call',
-  widget_chat: 'Widget Chat',
+  ai_call: 'Llamada IA',
+  widget_chat: 'Chat del widget',
   manual: 'Manual',
-  website_form: 'Website Form',
+  website_form: 'Formulario del sitio',
 }
 
 export function ClientsTable({ initialClients }: { initialClients: Client[] }) {
@@ -24,30 +24,30 @@ export function ClientsTable({ initialClients }: { initialClients: Client[] }) {
   return (
     <div>
       <input
-        placeholder="Search name, phone or email..."
+        placeholder="Buscar por nombre, teléfono o correo..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="border rounded-lg px-3 py-2 w-full mb-4"
+        className="input-field w-full mb-4"
       />
       <div className="divide-y divide-[var(--border)]">
         {filtered.map((client) => (
           <div key={client.id} className="py-3 flex items-center gap-4">
             <div className="flex-1 min-w-0">
-              <p className="font-medium">{client.name}</p>
+              <p className="font-medium text-[var(--text-1)]">{client.name}</p>
               <p className="text-xs text-[var(--text-3)] truncate">
-                {[client.phone, client.email].filter(Boolean).join(' · ') || 'No contact info'}
+                {[client.phone, client.email].filter(Boolean).join(' · ') || 'Sin datos de contacto'}
               </p>
             </div>
             {client.budget != null && (
-              <p className="text-sm font-semibold w-28 text-right">${client.budget.toLocaleString()}</p>
+              <p className="text-sm font-semibold w-28 text-right text-[var(--teal-700)]">${client.budget.toLocaleString()}</p>
             )}
-            <span className="text-xs rounded-full px-2 py-1 bg-[var(--teal-50)] text-[var(--teal-700)]">
+            <span className="badge bg-[var(--teal-50)] border-transparent text-[var(--teal-700)]">
               {SOURCE_LABELS[client.source] ?? client.source}
             </span>
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="py-6 text-center text-sm text-[var(--text-3)]">No clients match this search.</p>
+          <p className="py-6 text-center text-sm text-[var(--text-3)]">Ningún cliente coincide con esta búsqueda.</p>
         )}
       </div>
     </div>

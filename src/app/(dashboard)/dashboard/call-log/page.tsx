@@ -14,10 +14,10 @@ export default async function CallLogPage() {
   const conversations = await listConversationsForBusiness(supabase, business.id)
 
   return (
-    <div className="card-surface p-4">
+    <div className="card-surface p-5">
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Call Log</h1>
-        <p className="text-sm text-[var(--text-3)]">{conversations.length} conversations recorded</p>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Llamadas</h1>
+        <p className="text-sm text-[var(--text-3)]">{conversations.length} conversaciones registradas</p>
       </div>
       <CallLogTable initialConversations={conversations} />
     </div>

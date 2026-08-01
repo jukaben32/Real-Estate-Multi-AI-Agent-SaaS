@@ -14,10 +14,10 @@ export default async function ClientsPage() {
   const clients = await listClientsForBusiness(supabase, business.id)
 
   return (
-    <div className="card-surface p-4">
+    <div className="card-surface p-5">
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Clients</h1>
-        <p className="text-sm text-[var(--text-3)]">{clients.length} leads captured by your AI agents</p>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Clientes</h1>
+        <p className="text-sm text-[var(--text-3)]">{clients.length} leads capturados por tus agentes IA</p>
       </div>
       <ClientsTable initialClients={clients} />
     </div>

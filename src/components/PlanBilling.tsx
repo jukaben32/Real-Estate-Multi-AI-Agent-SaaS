@@ -31,15 +31,15 @@ export function PlanBilling({ subscription }: { subscription: BusinessSubscripti
   return (
     <div className="space-y-4">
       <div className="card-surface p-4">
-        <p className="text-sm text-[var(--text-3)]">Current plan</p>
-        <p className="text-2xl font-semibold capitalize">{PLAN_LIMITS[currentPlan].name}</p>
+        <p className="text-sm text-[var(--text-3)]">Plan actual</p>
+        <p className="font-display text-2xl font-semibold capitalize text-[var(--text-1)]">{PLAN_LIMITS[currentPlan].name}</p>
         <p className="text-sm text-[var(--text-3)] mt-1 capitalize">
-          Status: {subscription?.status ?? 'active'}
-          {subscription?.cancel_at_period_end && ' · cancels at period end'}
+          Estado: {STATUS_LABELS[subscription?.status ?? 'active'] ?? subscription?.status}
+          {subscription?.cancel_at_period_end && ' · se cancela al fin del período'}
         </p>
         {subscription?.stripe_customer_id && (
           <button className="btn-secondary mt-3" onClick={openPortal} disabled={loadingPlan === 'portal'}>
-            {loadingPlan === 'portal' ? 'Opening…' : 'Manage billing'}
+            {loadingPlan === 'portal' ? 'Abriendo…' : 'Administrar facturación'}
           </button>
         )}
       </div>
@@ -47,14 +47,14 @@ export function PlanBilling({ subscription }: { subscription: BusinessSubscripti
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {(Object.values(PLAN_LIMITS) as (typeof PLAN_LIMITS)[PlanId][]).map((plan) => (
           <div key={plan.id} className={`card-surface p-4 ${plan.id === currentPlan ? 'card-glow' : ''}`}>
-            <p className="font-semibold">{plan.name}</p>
-            <p className="text-2xl font-semibold mt-1">
+            <p className="font-semibold text-[var(--text-1)]">{plan.name}</p>
+            <p className="font-display text-2xl font-semibold mt-1 text-[var(--teal-700)]">
               ${plan.priceUsd}
-              <span className="text-sm font-normal text-[var(--text-3)]">/mo</span>
+              <span className="text-sm font-normal text-[var(--text-3)]">/mes</span>
             </p>
             <ul className="text-sm text-[var(--text-3)] mt-2 space-y-1">
-              <li>{plan.agentLimit === 0 ? 'Unlimited' : plan.agentLimit} AI agents</li>
-              <li>{plan.bookingLimit === 0 ? 'Unlimited' : plan.bookingLimit} bookings/mo</li>
+              <li>{plan.agentLimit === 0 ? 'Ilimitados' : plan.agentLimit} agentes IA</li>
+              <li>{plan.bookingLimit === 0 ? 'Ilimitadas' : plan.bookingLimit} citas/mes</li>
             </ul>
             {plan.id !== 'free' && plan.id !== currentPlan && (
               <button
@@ -62,15 +62,23 @@ export function PlanBilling({ subscription }: { subscription: BusinessSubscripti
                 onClick={() => upgrade(plan.id as Exclude<PlanId, 'free'>)}
                 disabled={loadingPlan === plan.id}
               >
-                {loadingPlan === plan.id ? 'Redirecting…' : `Upgrade to ${plan.name}`}
+                {loadingPlan === plan.id ? 'Redirigiendo…' : `Mejorar a ${plan.name}`}
               </button>
             )}
             {plan.id === currentPlan && (
-              <p className="mt-3 text-xs font-semibold text-[var(--teal-700)]">Current plan</p>
+              <p className="mt-3 text-xs font-semibold text-[var(--teal-700)]">Plan actual</p>
             )}
           </div>
         ))}
       </div>
     </div>
   )
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Activo',
+  trialing: 'En prueba',
+  past_due: 'Pago pendiente',
+  canceled: 'Cancelado',
+  incomplete: 'Incompleto',
 }

@@ -15,8 +15,8 @@ export default async function PlanPage() {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Plan &amp; Billing</h1>
-        <p className="text-sm text-[var(--text-3)]">Manage your subscription and payment method.</p>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Plan y Facturación</h1>
+        <p className="text-sm text-[var(--text-3)]">Administra tu suscripción y método de pago.</p>
       </div>
       <PlanBilling subscription={subscription} />
     </div>

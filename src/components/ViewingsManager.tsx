@@ -6,9 +6,16 @@ import { APPOINTMENT_STATUSES } from '@/constants'
 
 const STATUS_STYLES: Record<string, string> = {
   scheduled: 'bg-[var(--teal-50)] text-[var(--teal-700)]',
-  completed: 'bg-green-100 text-green-700',
+  completed: 'bg-[var(--teal-50)] text-[var(--teal-800)]',
   cancelled: 'bg-red-100 text-red-700',
-  no_show: 'bg-amber-100 text-amber-700',
+  no_show: 'bg-[var(--gold)]/15 text-[var(--gold)]',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Agendada',
+  completed: 'Completada',
+  cancelled: 'Cancelada',
+  no_show: 'No asistió',
 }
 
 export function ViewingsManager({ initialAppointments }: { initialAppointments: Appointment[] }) {
@@ -35,11 +42,11 @@ export function ViewingsManager({ initialAppointments }: { initialAppointments: 
   return (
     <div>
       <div className="flex items-center gap-2 mb-4">
-        <select value={status} onChange={(e) => setStatus(e.target.value)} className="border rounded-lg px-3 py-2">
-          <option value="all">All Statuses</option>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} className="input-field w-auto">
+          <option value="all">Todos los estados</option>
           {APPOINTMENT_STATUSES.map((s) => (
             <option key={s} value={s}>
-              {s.replace('_', ' ')}
+              {STATUS_LABELS[s] ?? s}
             </option>
           ))}
         </select>
@@ -49,29 +56,29 @@ export function ViewingsManager({ initialAppointments }: { initialAppointments: 
         {filtered.map((appt) => (
           <div key={appt.id} className="py-3 flex items-center gap-4">
             <div className="flex-1 min-w-0">
-              <p className="font-medium">{new Date(appt.scheduled_at).toLocaleString()}</p>
+              <p className="font-medium text-[var(--text-1)]">{new Date(appt.scheduled_at).toLocaleString('es-DO')}</p>
               {appt.notes && <p className="text-xs text-[var(--text-3)] truncate">{appt.notes}</p>}
             </div>
-            <span className={`text-xs rounded-full px-2 py-1 capitalize ${STATUS_STYLES[appt.status] ?? ''}`}>
-              {appt.status.replace('_', ' ')}
+            <span className={`badge border-transparent ${STATUS_STYLES[appt.status] ?? ''}`}>
+              {STATUS_LABELS[appt.status] ?? appt.status}
             </span>
             {appt.status === 'scheduled' && (
               <div className="flex gap-1">
                 <button className="btn-secondary" onClick={() => setAppointmentStatus(appt.id, 'completed')}>
-                  Complete
+                  Completar
                 </button>
                 <button className="btn-secondary" onClick={() => setAppointmentStatus(appt.id, 'no_show')}>
-                  No-show
+                  No asistió
                 </button>
                 <button className="btn-secondary" onClick={() => setAppointmentStatus(appt.id, 'cancelled')}>
-                  Cancel
+                  Cancelar
                 </button>
               </div>
             )}
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="py-6 text-center text-sm text-[var(--text-3)]">No viewings match this filter.</p>
+          <p className="py-6 text-center text-sm text-[var(--text-3)]">Ninguna cita coincide con este filtro.</p>
         )}
       </div>
     </div>

@@ -14,8 +14,8 @@ export function WidgetConfigForm({
 }) {
   const [form, setForm] = useState({
     isEnabled: initialWidget?.is_enabled ?? true,
-    primaryColor: initialWidget?.primary_color ?? '#2563eb',
-    greetingMessage: initialWidget?.greeting_message ?? 'Hi! Ask me about any of our listings.',
+    primaryColor: initialWidget?.primary_color ?? '#0E7C5A',
+    greetingMessage: initialWidget?.greeting_message ?? '¡Hola! Pregúntame sobre cualquiera de nuestras propiedades.',
     allowedOrigins: (initialWidget?.allowed_origins ?? []).join('\n'),
   })
   const [saving, setSaving] = useState(false)
@@ -55,10 +55,10 @@ export function WidgetConfigForm({
             checked={form.isEnabled}
             onChange={(e) => setForm({ ...form, isEnabled: e.target.checked })}
           />
-          Widget enabled
+          Widget activado
         </label>
         <div>
-          <label className="text-xs text-[var(--text-3)]">Primary color</label>
+          <label className="text-xs text-[var(--text-3)]">Color principal</label>
           <input
             type="color"
             value={form.primaryColor}
@@ -67,38 +67,38 @@ export function WidgetConfigForm({
           />
         </div>
         <div>
-          <label className="text-xs text-[var(--text-3)]">Greeting message</label>
+          <label className="text-xs text-[var(--text-3)]">Mensaje de saludo</label>
           <textarea
             value={form.greetingMessage}
             onChange={(e) => setForm({ ...form, greetingMessage: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="input-field w-full"
             rows={2}
           />
         </div>
         <div>
           <label className="text-xs text-[var(--text-3)]">
-            Allowed origins (one per line, e.g. https://myrealestate.com) — leave empty to allow any site
+            Orígenes permitidos (uno por línea, ej. https://miinmobiliaria.com) — déjalo vacío para permitir cualquier sitio
           </label>
           <textarea
             value={form.allowedOrigins}
             onChange={(e) => setForm({ ...form, allowedOrigins: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2"
+            className="input-field w-full"
             rows={3}
           />
         </div>
         <button type="submit" className="btn-primary" disabled={saving}>
-          {saving ? 'Saving…' : 'Save widget settings'}
+          {saving ? 'Guardando…' : 'Guardar configuración'}
         </button>
       </form>
 
       <div className="card-surface p-4">
-        <h2 className="font-semibold mb-2">Embed on your website</h2>
+        <h2 className="font-display font-semibold mb-2 text-[var(--text-1)]">Embeber en tu sitio web</h2>
         <p className="text-sm text-[var(--text-3)] mb-3">
-          Paste this snippet into any page on your site to add the voice assistant.
+          Pega este código en cualquier página de tu sitio para agregar el asistente de voz.
         </p>
         <pre className="bg-[var(--bg-subtle)] rounded-lg p-3 text-xs overflow-x-auto">{embedSnippet}</pre>
         <button className="btn-secondary mt-3" onClick={copySnippet}>
-          {copied ? 'Copied!' : 'Copy snippet'}
+          {copied ? '¡Copiado!' : 'Copiar código'}
         </button>
       </div>
     </div>

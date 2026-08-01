@@ -14,12 +14,12 @@ export default async function ViewingsPage() {
   const appointments = await listAppointmentsForBusiness(supabase, business.id)
 
   return (
-    <div className="card-surface p-4">
+    <div className="card-surface p-5">
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Viewings</h1>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Citas</h1>
         <p className="text-sm text-[var(--text-3)]">
-          {appointments.length} total ·{' '}
-          {appointments.filter((a) => a.status === 'scheduled').length} upcoming
+          {appointments.length} en total ·{' '}
+          {appointments.filter((a) => a.status === 'scheduled').length} próximas
         </p>
       </div>
       <ViewingsManager initialAppointments={appointments} />

@@ -38,47 +38,47 @@ export function WebsiteEditor({ business, initialWebsite }: { business: Business
           checked={form.isPublished}
           onChange={(e) => setForm({ ...form, isPublished: e.target.checked })}
         />
-        Published
+        Publicado
       </label>
       {form.isPublished && (
         <p className="text-xs text-[var(--text-3)]">
-          Live at{' '}
+          Activo en{' '}
           <a href={siteUrl} target="_blank" rel="noreferrer" className="text-[var(--teal-600)]">
             {siteUrl}
           </a>
         </p>
       )}
       <div>
-        <label className="text-xs text-[var(--text-3)]">Headline</label>
+        <label className="text-xs text-[var(--text-3)]">Titular</label>
         <input
           value={form.headline}
           onChange={(e) => setForm({ ...form, headline: e.target.value })}
-          className="w-full border rounded-lg px-3 py-2"
-          placeholder="Find your next home with us"
+          className="input-field w-full"
+          placeholder="Encuentra tu próximo hogar con nosotros"
         />
       </div>
       <div>
-        <label className="text-xs text-[var(--text-3)]">About</label>
+        <label className="text-xs text-[var(--text-3)]">Sobre nosotros</label>
         <textarea
           value={form.about}
           onChange={(e) => setForm({ ...form, about: e.target.value })}
-          className="w-full border rounded-lg px-3 py-2"
+          className="input-field w-full"
           rows={4}
         />
       </div>
       <div>
-        <label className="text-xs text-[var(--text-3)]">Theme</label>
+        <label className="text-xs text-[var(--text-3)]">Tema</label>
         <select
           value={form.theme}
           onChange={(e) => setForm({ ...form, theme: e.target.value })}
-          className="border rounded-lg px-3 py-2"
+          className="input-field w-auto"
         >
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
+          <option value="light">Claro</option>
+          <option value="dark">Oscuro</option>
         </select>
       </div>
       <button type="submit" className="btn-primary" disabled={saving}>
-        {saving ? 'Saving…' : saved ? 'Saved!' : 'Save website'}
+        {saving ? 'Guardando…' : saved ? '¡Guardado!' : 'Guardar sitio'}
       </button>
     </form>
   )

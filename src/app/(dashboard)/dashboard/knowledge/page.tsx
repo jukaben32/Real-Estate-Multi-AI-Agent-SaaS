@@ -14,10 +14,10 @@ export default async function KnowledgePage() {
   const documents = await listKnowledgeDocuments(supabase, business.id)
 
   return (
-    <div className="card-surface p-4">
+    <div className="card-surface p-5">
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Knowledge Base</h1>
-        <p className="text-sm text-[var(--text-3)]">{documents.length} documents your AI agent can ground answers in</p>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Base de conocimiento</h1>
+        <p className="text-sm text-[var(--text-3)]">{documents.length} documentos que tu agente IA puede usar para responder</p>
       </div>
       <KnowledgeManager initialDocuments={documents} />
     </div>

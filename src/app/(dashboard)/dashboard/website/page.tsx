@@ -16,9 +16,9 @@ export default async function WebsitePage() {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Website</h1>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Sitio Web</h1>
         <p className="text-sm text-[var(--text-3)]">
-          Your public site at /sites/{business.slug} — published listings show automatically.
+          Tu sitio público en /sites/{business.slug} — las propiedades publicadas aparecen automáticamente.
         </p>
       </div>
       <WebsiteEditor business={business} initialWebsite={website} />

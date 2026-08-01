@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { BusinessAvailability } from '@/types'
 
-const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const DAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 interface DayForm {
   dayOfWeek: number
@@ -61,31 +61,31 @@ export function ScheduleEditor({ initialAvailability }: { initialAvailability: B
             type="time"
             value={day.startTime}
             onChange={(e) => updateDay(i, { startTime: e.target.value })}
-            className="border rounded-lg px-2 py-1"
+            className="input-field w-auto"
             disabled={!day.isActive}
           />
-          <span className="text-sm text-[var(--text-3)]">to</span>
+          <span className="text-sm text-[var(--text-3)]">a</span>
           <input
             type="time"
             value={day.endTime}
             onChange={(e) => updateDay(i, { endTime: e.target.value })}
-            className="border rounded-lg px-2 py-1"
+            className="input-field w-auto"
             disabled={!day.isActive}
           />
           <select
             value={day.slotMinutes}
             onChange={(e) => updateDay(i, { slotMinutes: Number(e.target.value) })}
-            className="border rounded-lg px-2 py-1"
+            className="input-field w-auto"
             disabled={!day.isActive}
           >
             {[15, 30, 45, 60].map((m) => (
               <option key={m} value={m}>
-                {m} min slots
+                turnos de {m} min
               </option>
             ))}
           </select>
           <button className="btn-secondary ml-auto" onClick={() => saveDay(i)} disabled={savingDay === i}>
-            {savingDay === i ? 'Saving…' : 'Save'}
+            {savingDay === i ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
       ))}

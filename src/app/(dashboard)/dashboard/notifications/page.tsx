@@ -16,7 +16,7 @@ export default async function NotificationsPage() {
   return (
     <div className="card-surface p-4">
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Notifications</h1>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Notificaciones</h1>
       </div>
       <NotificationsPanel initialNotifications={notifications} />
     </div>

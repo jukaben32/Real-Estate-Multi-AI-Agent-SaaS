@@ -11,11 +11,18 @@ function dayKey(iso: string): string {
 }
 
 function dayLabel(key: string): string {
-  return new Date(`${key}T00:00:00Z`).toLocaleDateString('en-US', {
+  return new Date(`${key}T00:00:00Z`).toLocaleDateString('es-DO', {
     month: 'short',
     day: 'numeric',
     timeZone: 'UTC',
   })
+}
+
+const OUTCOME_LABELS: Record<string, string> = {
+  'booked_viewing': 'Cita agendada',
+  'qualified_lead': 'Lead calificado',
+  'no_action': 'Sin acción',
+  'escalated': 'Escalado',
 }
 
 export default async function AnalyticsPage() {
@@ -59,7 +66,7 @@ export default async function AnalyticsPage() {
     outcomeCounts.set(key, (outcomeCounts.get(key) ?? 0) + 1)
   }
   const outcomes: OutcomePoint[] = Array.from(outcomeCounts.entries()).map(([outcome, count]) => ({
-    outcome: outcome.replace('_', ' '),
+    outcome: OUTCOME_LABELS[outcome] ?? outcome.replace('_', ' '),
     count,
   }))
 
@@ -77,11 +84,15 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h1 className="font-display font-semibold text-2xl text-[var(--text-1)]">Analítica</h1>
+        <p className="text-sm text-[var(--text-3)] mt-1">Rendimiento de tus agentes IA, últimos 14 días</p>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Conversations" value={conversations.length} />
-        <StatCard label="Avg. Call Duration" value={`${avgMinutes}:${avgSeconds.toString().padStart(2, '0')}`} />
-        <StatCard label="Total Viewings Booked" value={appointments.length} />
-        <StatCard label="Call → Booking Rate" value={`${conversionRate}%`} />
+        <StatCard label="Conversaciones totales" value={conversations.length} />
+        <StatCard label="Duración promedio" value={`${avgMinutes}:${avgSeconds.toString().padStart(2, '0')}`} />
+        <StatCard label="Citas agendadas" value={appointments.length} />
+        <StatCard label="Tasa de conversión" value={`${conversionRate}%`} />
       </div>
       <AnalyticsCharts daily={daily} outcomes={outcomes} />
     </div>
@@ -90,9 +101,9 @@ export default async function AnalyticsPage() {
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="card-surface p-4">
+    <div className="stat-card p-4">
       <p className="text-xs text-[var(--text-3)]">{label}</p>
-      <p className="text-2xl font-semibold">{value}</p>
+      <p className="font-display text-2xl font-semibold mt-1 text-[var(--teal-700)]">{value}</p>
     </div>
   )
 }

@@ -17,8 +17,8 @@ export default async function WidgetPage() {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="font-semibold text-lg">Widget</h1>
-        <p className="text-sm text-[var(--text-3)]">Configure and embed your AI voice assistant.</p>
+        <h1 className="font-display font-semibold text-xl text-[var(--text-1)]">Widget</h1>
+        <p className="text-sm text-[var(--text-3)]">Configura y embebe tu asistente de voz IA.</p>
       </div>
       <WidgetConfigForm businessId={business.id} initialWidget={widget} appUrl={appUrl} />
     </div>
