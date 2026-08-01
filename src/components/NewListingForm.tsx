@@ -20,6 +20,7 @@ export function NewListingForm({ onCreated, onClose }: NewListingFormProps) {
     areaSqft: '',
     city: '',
   })
+  const [photo, setPhoto] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -33,15 +34,27 @@ export function NewListingForm({ onCreated, onClose }: NewListingFormProps) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
     })
-    setLoading(false)
 
     if (!res.ok) {
+      setLoading(false)
       const body = await res.json().catch(() => ({}))
       setError(body.error ?? 'No se pudo crear la propiedad')
       return
     }
 
     const { listing } = await res.json()
+
+    if (photo) {
+      const photoBody = new FormData()
+      photoBody.append('file', photo)
+      const photoRes = await fetch(`/api/listings/${listing.id}/photo`, { method: 'POST', body: photoBody })
+      if (photoRes.ok) {
+        const { listing: updated } = await photoRes.json()
+        Object.assign(listing, updated)
+      }
+    }
+
+    setLoading(false)
     onCreated(listing)
   }
 
@@ -112,6 +125,15 @@ export function NewListingForm({ onCreated, onClose }: NewListingFormProps) {
         onChange={(e) => setForm({ ...form, areaSqft: e.target.value })}
         className="input-field col-span-2"
       />
+      <div className="col-span-2">
+        <label className="text-xs text-[var(--text-3)]">Foto de portada (opcional)</label>
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+          className="input-field"
+        />
+      </div>
       <div className="col-span-2 flex gap-2 justify-end">
         <button type="button" onClick={onClose} className="btn-secondary">
           Cancelar

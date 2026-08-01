@@ -48,6 +48,19 @@ export function ListingsTable({ initialListings }: { initialListings: ListingWit
     if (res.ok) setListings((prev) => prev.filter((l) => l.id !== listingId))
   }
 
+  async function uploadPhoto(listingId: string, file: File) {
+    const body = new FormData()
+    body.append('file', file)
+    const res = await fetch(`/api/listings/${listingId}/photo`, { method: 'POST', body })
+    if (res.ok) {
+      const { listing: updated } = await res.json()
+      setListings((prev) => prev.map((l) => (l.id === listingId ? { ...l, ...updated } : l)))
+    } else {
+      const body = await res.json().catch(() => ({}))
+      alert(body.error ?? 'No se pudo subir la foto')
+    }
+  }
+
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -91,6 +104,30 @@ export function ListingsTable({ initialListings }: { initialListings: ListingWit
       <div className="divide-y divide-[var(--border)]">
         {filtered.map((listing) => (
           <div key={listing.id} className="py-3 flex items-center gap-4">
+            <label className="shrink-0 cursor-pointer group relative">
+              {listing.cover_photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={listing.cover_photo_url}
+                  alt={listing.title}
+                  className="w-14 h-14 rounded-lg object-cover border border-[var(--border)]"
+                />
+              ) : (
+                <span className="w-14 h-14 rounded-lg border border-dashed border-[var(--border)] grid place-items-center text-[var(--text-4)] text-[10px] text-center leading-tight">
+                  + Foto
+                </span>
+              )}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) uploadPhoto(listing.id, file)
+                  e.target.value = ''
+                }}
+              />
+            </label>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">
                 {listing.title} {listing.featured && '⭐'}
