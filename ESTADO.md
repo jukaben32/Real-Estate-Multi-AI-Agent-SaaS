@@ -122,26 +122,37 @@ Variables de entorno: ver `.env.example`. Las mínimas para arrancar son
 
 ## PENDIENTES
 
-### 1. Base de datos (bloqueante)
-El proyecto de Supabase todavía tiene el esquema viejo de Prisma. 7 tablas chocan por
-nombre con las nuevas (`ai_agents`, `appointments`, `clients`, `notifications`,
-`support_messages`, `support_tickets`, `websites`). Ejecutar **en este orden**:
+### 1. Base de datos — ✅ resuelto (1 ago 2026)
+El schema ya está aplicado en el proyecto real de Supabase (`elrvxpgxlnyvfsfufnoq`):
+18 tablas, incluida `business_services` (nueva). No había tablas viejas de Prisma que
+limpiar, así que `00_drop_legacy_prisma_tables.sql` no hizo falta correrlo — se deja
+en el repo por si se necesita en otro entorno que sí tenga el esquema viejo.
 
-1. `supabase/00_drop_legacy_prisma_tables.sql`
-2. `supabase/schema.sql`
+### 2. Deploy en Vercel — ✅ resuelto (1 ago 2026)
+La causa real no era el Output Directory (ya estaba en default) sino que el
+**Framework Preset del proyecto estaba en "Express"** (el backend viejo), así que
+Vercel intentaba construirlo como esa app. Se corrigió a **Next.js** vía API y se
+cargaron `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY` y `NEXT_PUBLIC_APP_URL` como env vars del proyecto
+(production/preview/development). El deploy del PR #1 ya queda en estado **Ready**.
 
-Saltarse el primero deja la base rota a medias, con errores tipo
-"column business_id does not exist".
+Para pasar a producción: mergear el PR a `main` (o hacer redeploy manual del último
+commit de `main` en el dashboard de Vercel) — con el framework ya corregido y las
+env vars cargadas, el deploy de producción debería funcionar igual que el preview.
 
-### 2. Deploy en Vercel (bloqueante)
-La URL de producción sirve todavía la landing estática vieja. El proyecto de Vercel
-tiene un override de **Output Directory** apuntando a `estatecall-frontend/landing`,
-carpeta que ya no existe. Corregir en Settings → General:
+### 3. Variables de entorno que todavía faltan (bloqueante para funcionalidad completa)
+Con lo cargado hoy, el dashboard funciona (auth, listings, agentes, viewings, schedule,
+clients, services, knowledge, widget config, website, notifications — todo lectura y
+escritura contra Supabase). Sin estas tres, algunas funciones fallan de forma esperada:
 
-- Framework Preset → **Next.js**
-- Output Directory → quitar el override (dejar en default)
-- Build / Install Command → default
-- Root Directory → `./`
+| Variable | Bloquea | Dónde conseguirla |
+|---|---|---|
+| `OPENAI_API_KEY` | La voz del agente IA (Realtime): `/api/agents/[agentId]/session`, el widget de voz, `widget-demo`, `/embed/[businessId]` | platform.openai.com/api-keys |
+| `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | Upgrade de plan y checkout del website builder (`/dashboard/plan`), portal de facturación, el webhook que sincroniza el plan tras pagar | dashboard.stripe.com/apikeys |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Emails de confirmación de cita y de lead nuevo (`src/services/email.ts`) — no rompen el flujo, simplemente no se envía el correo | resend.com/api-keys |
+
+Cuando se agreguen, avisar para cargarlas también en Vercel (mismo proceso que se
+usó hoy con las de Supabase).
 
 Luego cargar las variables de entorno y hacer Redeploy sin caché.
 No hay que borrar el proyecto de Vercel: se perdería el subdominio.
