@@ -51,6 +51,11 @@ export const REALTIME_TOOLS: RealtimeTool[] = [
         datetime: { type: 'string', description: 'ISO 8601 datetime, must be a slot from check_availability' },
         clientName: { type: 'string' },
         clientPhone: { type: 'string' },
+        clientEmail: {
+          type: 'string',
+          description:
+            'Email address. Ask for it — without it the caller cannot receive a confirmation or access their client portal.',
+        },
       },
       required: ['datetime', 'clientName', 'clientPhone'],
     },
@@ -65,6 +70,7 @@ export const REALTIME_TOOLS: RealtimeTool[] = [
       properties: {
         clientName: { type: 'string' },
         clientPhone: { type: 'string' },
+        clientEmail: { type: 'string' },
         budget: { type: 'number' },
       },
       required: ['clientName', 'clientPhone'],
@@ -99,7 +105,9 @@ export function buildSystemPrompt(opts: {
     listingSummaries,
     '',
     'When the caller wants to see a property, use check_availability to find a real open slot before proposing a time,',
-    'then confirm their name and phone number before calling book_viewing. If they are not ready to book, still call',
+    'then confirm their name, phone number and email before calling book_viewing. The email matters: it is how they get',
+    'their confirmation and how they sign in to the client portal to reschedule, cancel or pay. Ask for it once; if they',
+    'decline, book anyway rather than pressing. If they are not ready to book, still call',
     'capture_lead once you have their name and phone number so the business can follow up.',
     'Never invent listing details, prices, or availability that the tools did not return.',
   ]

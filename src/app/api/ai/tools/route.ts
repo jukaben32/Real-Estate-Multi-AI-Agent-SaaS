@@ -4,6 +4,7 @@ import { getAvailableSlots, createAppointment } from '@/services/appointments'
 import { findOrCreateClientByPhone } from '@/services/clients'
 import { getSubscription } from '@/services/businesses'
 import { appendMessage } from '@/services/conversations'
+import { notifyAppointmentBooked, notifyLeadCaptured } from '@/services/notify'
 import type { PlanId } from '@/types'
 
 // Single relay endpoint for every OpenAI Realtime function call. The browser
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
         const client = await findOrCreateClientByPhone(supabase, businessId, {
           name: args.clientName,
           phone: args.clientPhone,
+          email: args.clientEmail,
           source: 'ai_call',
         })
 
@@ -99,6 +101,15 @@ export async function POST(request: Request) {
           scheduledAt: args.datetime,
         })
 
+        // Confirmación al cliente + aviso al negocio. Nunca bloquea la reserva:
+        // notifyAppointmentBooked traga sus propios errores.
+        await notifyAppointmentBooked(supabase, {
+          businessId,
+          appointment,
+          client,
+          listingId,
+        })
+
         return NextResponse.json({ booked: true, appointment })
       }
 
@@ -106,9 +117,13 @@ export async function POST(request: Request) {
         const client = await findOrCreateClientByPhone(supabase, businessId, {
           name: args.clientName,
           phone: args.clientPhone,
+          email: args.clientEmail,
           budget: args.budget,
           source: 'ai_call',
         })
+
+        await notifyLeadCaptured(supabase, { businessId, client })
+
         return NextResponse.json({ captured: true, clientId: client.id })
       }
 

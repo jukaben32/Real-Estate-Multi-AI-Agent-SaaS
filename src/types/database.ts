@@ -157,6 +157,8 @@ export interface Database {
           budget: number | null
           source: 'ai_call' | 'widget_chat' | 'manual' | 'website_form'
           notes: string | null
+          portal_invited_at: string | null
+          portal_last_seen_at: string | null
           created_at: string
           updated_at: string
         }
@@ -213,8 +215,22 @@ export interface Database {
           client_id: string | null
           conversation_id: string | null
           scheduled_at: string
-          status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
+          status: 'scheduled' | 'pending_confirmation' | 'completed' | 'cancelled' | 'no_show'
           notes: string | null
+          rescheduled_from: string | null
+          requested_scheduled_at: string | null
+          reschedule_requested_at: string | null
+          confirmed_by_agent_at: string | null
+          cancelled_at: string | null
+          cancellation_reason: string | null
+          cancelled_by: 'client' | 'business' | 'system' | null
+          payment_status: 'not_required' | 'pending' | 'paid' | 'cash' | 'refunded'
+          payment_amount: number | null
+          payment_currency: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          paid_at: string | null
+          reminder_sent_at: string | null
           created_at: string
           updated_at: string
         }
@@ -302,7 +318,15 @@ export interface Database {
         Row: {
           id: string
           business_id: string
-          type: 'new_lead' | 'appointment_booked' | 'appointment_cancelled' | 'subscription' | 'system'
+          type:
+            | 'new_lead'
+            | 'appointment_booked'
+            | 'appointment_cancelled'
+            | 'appointment_rescheduled'
+            | 'support_ticket'
+            | 'payment_received'
+            | 'subscription'
+            | 'system'
           title: string
           body: string | null
           is_read: boolean
@@ -323,6 +347,9 @@ export interface Database {
           client_id: string | null
           subject: string
           status: 'open' | 'in_progress' | 'resolved' | 'closed'
+          priority: 'low' | 'normal' | 'high' | 'urgent'
+          last_message_at: string | null
+          closed_at: string | null
           created_at: string
           updated_at: string
         }

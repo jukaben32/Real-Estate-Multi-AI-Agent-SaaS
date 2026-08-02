@@ -1,24 +1,35 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getBusinessForOwner } from '@/services/businesses'
-import { updateAppointmentStatus } from '@/services/appointments'
-
-async function requireBusiness() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) return { error: 'Not authenticated' as const }
-  const business = await getBusinessForOwner(supabase, user.id)
-  if (!business) return { error: 'No business for this user' as const }
-  return { supabase, business }
-}
+import { requireBusiness, isErr } from '@/lib/api/auth'
+import { updateAppointmentStatus, setAppointmentPayment } from '@/services/appointments'
 
 export async function PATCH(request: Request, { params }: { params: { appointmentId: string } }) {
   const ctx = await requireBusiness()
-  if ('error' in ctx) return NextResponse.json({ error: ctx.error }, { status: 401 })
+  if (isErr(ctx)) return NextResponse.json({ error: ctx.error }, { status: 401 })
 
-  const { status } = await request.json()
-  const appointment = await updateAppointmentStatus(ctx.supabase, ctx.business.id, params.appointmentId, status)
-  return NextResponse.json({ appointment })
+  const body = await request.json()
+
+  try {
+    // Nuevo: el mismo PATCH acepta ahora datos de cobro. Si no vienen, el
+    // comportamiento anterior (solo cambio de estado) queda intacto.
+    if (body.paymentAmount !== undefined || body.markCash) {
+      const appointment = await setAppointmentPayment(
+        ctx.supabase,
+        ctx.business.id,
+        params.appointmentId,
+        { amount: body.paymentAmount, markCash: Boolean(body.markCash) }
+      )
+      return NextResponse.json({ appointment })
+    }
+
+    const appointment = await updateAppointmentStatus(
+      ctx.supabase,
+      ctx.business.id,
+      params.appointmentId,
+      body.status
+    )
+    return NextResponse.json({ appointment })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'No se pudo actualizar la cita'
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
 }

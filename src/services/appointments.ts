@@ -161,3 +161,158 @@ export async function getAvailableSlots(
 
   return slots
 }
+
+// ─── Reagendamiento con confirmación del agente ─────────────────────────────
+// El cliente propone una fecha nueva; la cita pasa a `pending_confirmation` y
+// conserva la fecha anterior en `rescheduled_from` hasta que el agente decide.
+// Si el agente rechaza, se revierte a la fecha original sin perder nada.
+
+export async function requestReschedule(
+  supabase: DB,
+  appointmentId: string,
+  clientId: string,
+  newScheduledAt: string
+): Promise<Appointment> {
+  const { data: current, error: readError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', appointmentId)
+    .eq('client_id', clientId)
+    .single()
+  if (readError) throw readError
+
+  if (!['scheduled', 'pending_confirmation'].includes(current.status)) {
+    throw new Error('Esta cita ya no se puede reagendar')
+  }
+  if (new Date(newScheduledAt).getTime() <= Date.now()) {
+    throw new Error('La nueva fecha debe estar en el futuro')
+  }
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({
+      status: 'pending_confirmation',
+      requested_scheduled_at: newScheduledAt,
+      reschedule_requested_at: new Date().toISOString(),
+      rescheduled_from: current.rescheduled_from ?? current.scheduled_at,
+      confirmed_by_agent_at: null,
+    })
+    .eq('id', appointmentId)
+    .eq('client_id', clientId)
+    .select('*')
+    .single()
+  if (error) throw error
+
+  await supabase.from('notifications').insert({
+    business_id: current.business_id,
+    type: 'appointment_rescheduled',
+    title: 'Reagendamiento pendiente',
+    body: `Un cliente pidió mover su cita al ${new Date(newScheduledAt).toLocaleString('es-ES')}`,
+  })
+
+  return data
+}
+
+export async function resolveReschedule(
+  supabase: DB,
+  businessId: string,
+  appointmentId: string,
+  decision: 'approve' | 'reject'
+): Promise<Appointment> {
+  const { data: current, error: readError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', appointmentId)
+    .eq('business_id', businessId)
+    .single()
+  if (readError) throw readError
+
+  if (current.status !== 'pending_confirmation') {
+    throw new Error('Esta cita no tiene un reagendamiento pendiente')
+  }
+
+  const patch =
+    decision === 'approve'
+      ? {
+          status: 'scheduled' as const,
+          scheduled_at: current.requested_scheduled_at ?? current.scheduled_at,
+          requested_scheduled_at: null,
+          confirmed_by_agent_at: new Date().toISOString(),
+        }
+      : {
+          status: 'scheduled' as const,
+          // Vuelve a la fecha original: nada se pierde en un rechazo.
+          scheduled_at: current.rescheduled_from ?? current.scheduled_at,
+          requested_scheduled_at: null,
+          reschedule_requested_at: null,
+          rescheduled_from: null,
+          confirmed_by_agent_at: null,
+        }
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .update(patch)
+    .eq('id', appointmentId)
+    .eq('business_id', businessId)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function cancelAppointment(
+  supabase: DB,
+  appointmentId: string,
+  by: 'client' | 'business',
+  opts: { businessId?: string; clientId?: string; reason?: string } = {}
+): Promise<Appointment> {
+  let query = supabase
+    .from('appointments')
+    .update({
+      status: 'cancelled',
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: by,
+      cancellation_reason: opts.reason ?? null,
+    })
+    .eq('id', appointmentId)
+
+  if (opts.businessId) query = query.eq('business_id', opts.businessId)
+  if (opts.clientId) query = query.eq('client_id', opts.clientId)
+
+  const { data, error } = await query.select('*').single()
+  if (error) throw error
+  return data
+}
+
+// El importe de una cita SOLO lo fija el negocio desde el panel. El portal lo
+// lee para generar el Checkout, pero nunca puede escribirlo.
+export async function setAppointmentPayment(
+  supabase: DB,
+  businessId: string,
+  appointmentId: string,
+  input: { amount?: number | null; markCash?: boolean }
+): Promise<Appointment> {
+  const patch: Record<string, unknown> = {}
+
+  if (input.amount !== undefined) {
+    patch.payment_amount = input.amount
+    // Poner precio a una cita sin pago la deja pendiente de cobro.
+    if (input.amount && input.amount > 0) patch.payment_status = 'pending'
+    else patch.payment_status = 'not_required'
+  }
+
+  if (input.markCash) {
+    patch.payment_status = 'cash'
+    patch.paid_at = new Date().toISOString()
+  }
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .update(patch)
+    .eq('id', appointmentId)
+    .eq('business_id', businessId)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}

@@ -174,3 +174,91 @@ function mapStripeStatus(status: Stripe.Subscription.Status): BusinessSubscripti
       return 'incomplete'
   }
 }
+
+// ─── Pago por cita individual (Stripe Checkout, modo `payment`) ─────────────
+// NOTA: cobra en la cuenta Stripe de la plataforma. Para que el dinero llegue
+// directo a la cuenta del negocio hace falta Stripe Connect; ver PLAN_MEJORAS.
+
+export async function createAppointmentCheckoutSession(opts: {
+  appointmentId: string
+  businessId: string
+  businessName: string
+  amountUsd: number
+  currency?: string
+  customerEmail?: string | null
+  description?: string
+  successUrl: string
+  cancelUrl: string
+}) {
+  const stripe = getStripeClient()
+
+  return stripe.checkout.sessions.create({
+    mode: 'payment',
+    customer_email: opts.customerEmail ?? undefined,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: opts.currency ?? 'usd',
+          unit_amount: Math.round(opts.amountUsd * 100),
+          product_data: {
+            name: opts.description || `Cita con ${opts.businessName}`,
+          },
+        },
+      },
+    ],
+    // La metadata es lo que el webhook usa para localizar la cita.
+    metadata: {
+      kind: 'appointment_payment',
+      appointment_id: opts.appointmentId,
+      business_id: opts.businessId,
+    },
+    payment_intent_data: {
+      metadata: {
+        kind: 'appointment_payment',
+        appointment_id: opts.appointmentId,
+        business_id: opts.businessId,
+      },
+    },
+    success_url: opts.successUrl,
+    cancel_url: opts.cancelUrl,
+  })
+}
+
+/**
+ * Marca la cita como pagada cuando Stripe confirma el checkout.
+ * Devuelve la cita actualizada, o null si el evento no era de una cita
+ * (por ejemplo, un checkout de suscripción) — así el webhook puede ignorarlo.
+ */
+export async function markAppointmentPaidFromStripeEvent(
+  supabase: DB,
+  event: Stripe.Event
+): Promise<{ appointmentId: string; amount: number; currency: string } | null> {
+  if (event.type !== 'checkout.session.completed') return null
+
+  const session = event.data.object as Stripe.Checkout.Session
+  if (session.metadata?.kind !== 'appointment_payment') return null
+
+  const appointmentId = session.metadata.appointment_id
+  if (!appointmentId) return null
+  if (session.payment_status !== 'paid') return null
+
+  const amount = (session.amount_total ?? 0) / 100
+  const currency = session.currency ?? 'usd'
+
+  const { error } = await supabase
+    .from('appointments')
+    .update({
+      payment_status: 'paid',
+      paid_at: new Date().toISOString(),
+      payment_amount: amount,
+      payment_currency: currency,
+      stripe_checkout_session_id: session.id,
+      stripe_payment_intent_id:
+        typeof session.payment_intent === 'string' ? session.payment_intent : null,
+    })
+    .eq('id', appointmentId)
+  if (error) throw error
+
+  return { appointmentId, amount, currency }
+}

@@ -18,6 +18,7 @@ import {
   CreditCard,
   Bell,
   Clock,
+  LifeBuoy,
   LogOut,
   Menu,
   X,
@@ -44,6 +45,7 @@ const NAV_SECTIONS = [
       { href: '/dashboard/knowledge', label: 'Conocimiento', icon: BookOpen },
       { href: '/dashboard/widget', label: 'Widget', icon: MessageSquare },
       { href: '/dashboard/website', label: 'Sitio Web', icon: Globe },
+      { href: '/dashboard/support', label: 'Soporte', icon: LifeBuoy },
     ],
   },
   {

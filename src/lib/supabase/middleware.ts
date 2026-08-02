@@ -36,9 +36,14 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname
   const isProtected = path.startsWith(DASHBOARD_PREFIX) || path.startsWith(PORTAL_PREFIX)
 
-  if (!user && isProtected) {
+  // El portal del cliente y el panel del agente tienen logins distintos:
+  // mandar a un cliente al login del agente lo dejaba en un callejón sin salida.
+  const isPortal = path.startsWith(PORTAL_PREFIX)
+  const isPortalPublic = path === '/portal/login' || path.startsWith('/portal/auth')
+
+  if (!user && isProtected && !isPortalPublic) {
     const loginUrl = request.nextUrl.clone()
-    loginUrl.pathname = '/login'
+    loginUrl.pathname = isPortal ? '/portal/login' : '/login'
     loginUrl.searchParams.set('redirect', path)
     return NextResponse.redirect(loginUrl)
   }
