@@ -4,13 +4,40 @@ import { startConversation } from '@/services/conversations'
 import { listAiVisibleListings } from '@/services/listings'
 import { buildSystemPrompt, REALTIME_TOOLS } from '@/ai/tools'
 import { OPENAI_REALTIME_MODEL } from '@/constants'
+import { Redis } from '@upstash/redis'
+
+const redisClient = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+})
 
 // Public endpoint — hit by the embeddable widget with no Supabase session, so
 // it uses the admin client and only ever returns an OpenAI *ephemeral* secret,
 // never OPENAI_API_KEY or SUPABASE_SERVICE_ROLE_KEY itself.
 export async function POST(request: Request, { params }: { params: { agentId: string } }) {
-  const { listingId } = await request.json().catch(() => ({ listingId: undefined }))
+  const { listingId, sessionToken } = await request.json().catch(() => ({ listingId: undefined, sessionToken: undefined }))
   const supabase = createAdminClient()
+
+  // Rate limiting per agentId + IP
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown'
+  const rlKey = `ratelimit:${params.agentId}:${ip}`
+  const count = await redisClient.incr(rlKey)
+  if (count === 1) await redisClient.expire(rlKey, 60) // 1 minute window
+  if (count > 5) {
+    return NextResponse.json({ error: 'Rate limit exceeded. Max 5 calls per minute.' }, { status: 429 })
+  }
+
+  // Validate session token (short-lived token issued by widget)
+  if (!sessionToken) {
+    return NextResponse.json({ error: 'Missing session token' }, { status: 401 })
+  }
+  const tokenKey = `session:${sessionToken}`
+  const tokenValid = await redisClient.get(tokenKey)
+  if (!tokenValid) {
+    return NextResponse.json({ error: 'Invalid or expired session token' }, { status: 403 })
+  }
+  // Token is valid, consume it (one-time use)
+  await redisClient.del(tokenKey)
 
   const { data: agent, error: agentError } = await supabase
     .from('ai_agents')
