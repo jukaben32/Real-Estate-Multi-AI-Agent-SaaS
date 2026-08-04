@@ -510,6 +510,16 @@ antes.
 No requiere migración de esquema — usa `knowledge_documents` tal cual ya existía.
 `npx tsc --noEmit` y `npm run build` verificados sin errores.
 
+**Contenido real cargado de prueba (4 ago 2026):** se investigaron y cargaron 9 FAQs
+sobre CONFOTUR/Ley 158-01 y Ley 108-05 (Registro Inmobiliario) — verificadas contra
+DGII, el texto oficial de las leyes y la firma Guzmán Ariza — en el negocio
+`sophia.tec` (`business_id b339ec23-ce93-44e1-8fee-879048f381d0`), categoría
+"Proceso y legal", vía la API REST de Supabase (el MCP de Supabase de esta sesión
+está en otra cuenta y no tiene acceso a este proyecto, así que se usó el
+`service_role` key directo). **Es contenido informativo, no asesoría legal/fiscal —
+recomendado que un abogado/contador dominicano lo revise** antes de confiar en él
+para clientes reales; los montos y porcentajes pueden cambiar si se modifica la ley.
+
 ## PRÓXIMO: Integración de WhatsApp (planificado — no implementado aún)
 
 **Por qué:** para el lanzamiento en República Dominicana, el email no es un canal
