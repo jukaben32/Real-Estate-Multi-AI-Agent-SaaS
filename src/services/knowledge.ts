@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import type { KnowledgeDocument, PlatformKnowledgeDocument } from '@/types'
-import type { KnowledgeDocumentInput } from '@/validations'
+import type { KnowledgeDocumentInput, PlatformKnowledgeDocumentInput } from '@/validations'
 
 type DB = SupabaseClient<Database>
 
@@ -76,6 +76,44 @@ export async function listPlatformKnowledgeDocuments(supabase: DB): Promise<Plat
     .order('created_at', { ascending: false })
   if (error) throw error
   return data ?? []
+}
+
+export async function createPlatformKnowledgeDocument(
+  supabase: DB,
+  input: PlatformKnowledgeDocumentInput
+): Promise<PlatformKnowledgeDocument> {
+  const { data, error } = await supabase
+    .from('platform_knowledge_documents')
+    .insert({
+      title: input.title,
+      content: input.content,
+      source_url: input.sourceUrl || null,
+      category: input.category || null,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updatePlatformKnowledgeDocument(
+  supabase: DB,
+  documentId: string,
+  patch: Partial<PlatformKnowledgeDocument>
+): Promise<PlatformKnowledgeDocument> {
+  const { data, error } = await supabase
+    .from('platform_knowledge_documents')
+    .update(patch)
+    .eq('id', documentId)
+    .select('*')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function deletePlatformKnowledgeDocument(supabase: DB, documentId: string) {
+  const { error } = await supabase.from('platform_knowledge_documents').delete().eq('id', documentId)
+  if (error) throw error
 }
 
 // Concatenated into the Realtime system prompt (see src/ai) so the agent can
