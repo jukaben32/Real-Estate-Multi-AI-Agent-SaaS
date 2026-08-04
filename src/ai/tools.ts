@@ -1,4 +1,4 @@
-import type { AiAgent, Business, KnowledgeDocument, Listing, RealtimeTool } from '@/types'
+import type { AiAgent, Business, KnowledgeDocument, Listing, PlatformKnowledgeDocument, RealtimeTool } from '@/types'
 import { listingPriceSuffix, isLandListing } from '@/lib/listingFormat'
 import { formatKnowledgeForPrompt } from '@/services/knowledge'
 
@@ -99,9 +99,11 @@ export function buildSystemPrompt(opts: {
   agent: AiAgent
   listings: Listing[]
   knowledgeDocs?: KnowledgeDocument[]
+  platformKnowledgeDocs?: PlatformKnowledgeDocument[]
 }): string {
-  const { business, agent, listings, knowledgeDocs = [] } = opts
+  const { business, agent, listings, knowledgeDocs = [], platformKnowledgeDocs = [] } = opts
   const knowledgeText = formatKnowledgeForPrompt(knowledgeDocs)
+  const platformKnowledgeText = formatKnowledgeForPrompt(platformKnowledgeDocs)
 
   const listingSummaries = listings.length
     ? listings
@@ -130,15 +132,27 @@ export function buildSystemPrompt(opts: {
     'If the caller asks to speak with a human, or has a request you cannot handle, call request_callback with their',
     'name and phone number instead of guessing or ending the call unresolved.',
     'Never invent listing details, prices, or availability that the tools did not return.',
+    platformKnowledgeText
+      ? [
+          '',
+          'General market knowledge (applies to every business on this platform — laws, taxes, ' +
+            'incentives, and processes for this market, not specific to this business):',
+          platformKnowledgeText,
+        ].join('\n')
+      : '',
     knowledgeText
       ? [
           '',
-          "Business knowledge base (policies, legal/tax facts, process notes specific to this business):",
+          'Business knowledge base (policies, process notes specific to this business):',
           knowledgeText,
+        ].join('\n')
+      : '',
+    platformKnowledgeText || knowledgeText
+      ? [
           '',
           'Only state legal, tax, or financial facts (e.g. exemptions, deadlines, percentages) that appear',
-          'verbatim above. If the caller asks something legal/financial that is not covered here, say you are',
-          'not sure and offer request_callback instead of guessing.',
+          'verbatim in the sections above. If the caller asks something legal/financial that is not covered',
+          'there, say you are not sure and offer request_callback instead of guessing.',
         ].join('\n')
       : '',
   ]

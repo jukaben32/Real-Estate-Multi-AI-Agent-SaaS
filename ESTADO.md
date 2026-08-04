@@ -510,15 +510,56 @@ antes.
 No requiere migración de esquema — usa `knowledge_documents` tal cual ya existía.
 `npx tsc --noEmit` y `npm run build` verificados sin errores.
 
-**Contenido real cargado de prueba (4 ago 2026):** se investigaron y cargaron 9 FAQs
-sobre CONFOTUR/Ley 158-01 y Ley 108-05 (Registro Inmobiliario) — verificadas contra
-DGII, el texto oficial de las leyes y la firma Guzmán Ariza — en el negocio
-`sophia.tec` (`business_id b339ec23-ce93-44e1-8fee-879048f381d0`), categoría
-"Proceso y legal", vía la API REST de Supabase (el MCP de Supabase de esta sesión
-está en otra cuenta y no tiene acceso a este proyecto, así que se usó el
-`service_role` key directo). **Es contenido informativo, no asesoría legal/fiscal —
-recomendado que un abogado/contador dominicano lo revise** antes de confiar en él
-para clientes reales; los montos y porcentajes pueden cambiar si se modifica la ley.
+**Contenido real cargado de prueba (4 ago 2026):** se investigaron 9 FAQs sobre
+CONFOTUR/Ley 158-01 y Ley 108-05 (Registro Inmobiliario) — verificadas contra DGII,
+el texto oficial de las leyes y la firma Guzmán Ariza. **Es contenido informativo,
+no asesoría legal/fiscal — recomendado que un abogado/contador dominicano lo
+revise** antes de confiar en él para clientes reales; los montos y porcentajes
+pueden cambiar si se modifica la ley.
+
+### Fase 0b — Conocimiento de plataforma (compartido entre todos los negocios) (4 ago 2026) ✅
+
+Las 9 FAQs de CONFOTUR/Ley 108-05 se cargaron primero en `knowledge_documents` del
+negocio `sophia.tec` (el negocio propio de Juan, afiliado a InmobilIACall para
+practicar y para su propia operación de corretaje) — pero eso las dejaba **privadas
+de ese único negocio**, porque `knowledge_documents.business_id` está aislado por
+RLS (correcto para el FAQ propio de cada agencia, incorrecto para hechos legales de
+todo el mercado dominicano). InmobilIACall es la plataforma (el SaaS); `sophia.tec`
+es apenas el primer negocio afiliado — cualquier agencia nueva que se registre debe
+heredar automáticamente el conocimiento de mercado (CONFOTUR, Ley 108-05, y lo que
+se agregue después) sin tener que volver a cargarlo a mano, y si la ley cambia debe
+bastar con actualizarlo una sola vez.
+
+Se agregó una tabla nueva, separada de `knowledge_documents`, **sin `business_id`**:
+
+- `supabase/schema.sql` — migración 31: `platform_knowledge_documents` (`title`,
+  `content`, `category`, `source_url`). RLS habilitado con política de lectura
+  pública (`for select using (true)`) — es información no sensible y ya publicada;
+  todavía no hay UI de dashboard para editarla, así que por ahora se escribe solo
+  vía `service_role` (aplicado directo a producción con el Management API de
+  Supabase, ya que el conector MCP de Supabase de esta sesión apunta a otra cuenta
+  sin acceso a este proyecto).
+- Las 9 FAQs se movieron de `sophia.tec` a `platform_knowledge_documents` (ya no
+  están duplicadas — `sophia.tec` solo conserva su única FAQ realmente propia,
+  "¿Cómo agendo una visita a una propiedad?").
+- `src/services/knowledge.ts`: nueva `listPlatformKnowledgeDocuments()` (sin filtro
+  de negocio); `formatKnowledgeForPrompt()` ahora acepta también el tipo de
+  plataforma.
+- `src/ai/tools.ts`: `buildSystemPrompt()` recibe `platformKnowledgeDocs` además de
+  `knowledgeDocs` e inyecta **dos secciones separadas y rotuladas** en el prompt
+  ("conocimiento general del mercado, aplica a todo negocio en esta plataforma" vs.
+  "base de conocimiento propia de este negocio") — así el agente sabe distinguir
+  origen si hace falta, aunque la instrucción de no inventar cifras aplica a ambas.
+- `src/app/api/agents/[agentId]/session/route.ts`: trae `platformKnowledgeDocs` en
+  paralelo a todo lo demás y se lo pasa al prompt — **todo negocio, presente o
+  futuro, recibe este conocimiento automáticamente**, sin que Juan tenga que
+  cargarlo de nuevo cada vez que afilie una nueva agencia.
+- `src/types/database.ts` / `src/types/index.ts`: tipo `PlatformKnowledgeDocument`.
+
+Pendiente para más adelante (no bloqueante): una pantalla de administración de
+plataforma (fuera del dashboard de cada negocio) para editar
+`platform_knowledge_documents` sin tener que pasar por SQL directo. `npx tsc
+--noEmit` y `npm run build` verificados sin errores.
 
 ## PRÓXIMO: Integración de WhatsApp (planificado — no implementado aún)
 

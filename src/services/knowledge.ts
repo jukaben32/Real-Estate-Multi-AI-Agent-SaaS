@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import type { KnowledgeDocument } from '@/types'
+import type { KnowledgeDocument, PlatformKnowledgeDocument } from '@/types'
 import type { KnowledgeDocumentInput } from '@/validations'
 
 type DB = SupabaseClient<Database>
@@ -65,9 +65,22 @@ export async function deleteKnowledgeDocument(supabase: DB, businessId: string, 
   if (error) throw error
 }
 
+// Shared across every business on the platform — country/market-level facts
+// (e.g. CONFOTUR, Ley 108-05) that would otherwise have to be copied into
+// every tenant's own knowledge_documents by hand. No dashboard UI to manage
+// these yet; they're seeded/edited directly against Supabase.
+export async function listPlatformKnowledgeDocuments(supabase: DB): Promise<PlatformKnowledgeDocument[]> {
+  const { data, error } = await supabase
+    .from('platform_knowledge_documents')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data ?? []
+}
+
 // Concatenated into the Realtime system prompt (see src/ai) so the agent can
 // ground answers in business-specific facts beyond what's in `listings`.
-export function formatKnowledgeForPrompt(docs: KnowledgeDocument[]): string {
+export function formatKnowledgeForPrompt(docs: (KnowledgeDocument | PlatformKnowledgeDocument)[]): string {
   if (docs.length === 0) return ''
   return docs.map((d) => `### ${d.title}\n${d.content}`).join('\n\n')
 }

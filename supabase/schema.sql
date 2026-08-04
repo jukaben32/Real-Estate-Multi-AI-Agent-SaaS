@@ -767,3 +767,32 @@ alter table businesses add column if not exists zip_code text;
 alter table businesses add column if not exists stripe_publishable_key text;
 alter table businesses add column if not exists stripe_secret_key text;
 alter table businesses add column if not exists stripe_connected boolean not null default false;
+
+-- 31. PLATFORM KNOWLEDGE (country/market-level facts shared by every business
+-- on InmobilIACall — e.g. CONFOTUR/Ley 158-01, Ley 108-05 — as opposed to
+-- knowledge_documents, which is each business's own private FAQ/policy
+-- content. No business_id: one row here is read by every AI agent's system
+-- prompt, in every business, without needing to be copied into each
+-- tenant's own knowledge_documents.
+create table if not exists platform_knowledge_documents (
+  id            uuid primary key default gen_random_uuid(),
+  title         text not null,
+  content       text not null,
+  category      text,
+  source_url    text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create trigger update_platform_knowledge_documents_updated_at
+  before update on platform_knowledge_documents
+  for each row execute function update_updated_at_column();
+
+alter table platform_knowledge_documents enable row level security;
+
+-- Non-sensitive, published market knowledge — safe for every business (and
+-- the public-facing AI agent) to read. No dashboard UI to edit it yet, so
+-- writes happen via the service role only for now.
+drop policy if exists "Anyone can view platform knowledge" on platform_knowledge_documents;
+create policy "Anyone can view platform knowledge"
+  on platform_knowledge_documents for select using (true);

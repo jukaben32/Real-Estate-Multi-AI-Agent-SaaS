@@ -306,6 +306,23 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['knowledge_documents']['Row']>
         Relationships: []
       }
+      platform_knowledge_documents: {
+        Row: {
+          id: string
+          title: string
+          content: string
+          category: string | null
+          source_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Partial<Database['public']['Tables']['platform_knowledge_documents']['Row']> & {
+          title: string
+          content: string
+        }
+        Update: Partial<Database['public']['Tables']['platform_knowledge_documents']['Row']>
+        Relationships: []
+      }
       widgets: {
         Row: {
           id: string
