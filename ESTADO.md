@@ -441,6 +441,75 @@ signup en este entorno porque el navegador del sandbox no tiene salida de red ha
 `supabase.co` (se recomienda probarlo una vez desplegado). `npx tsc --noEmit` y
 `npm run build` sin errores.
 
+## HOJA DE RUTA: Adaptación al mercado de República Dominicana (4 ago 2026)
+
+Contexto de negocio: más del 90% de los leads en RD llegan por WhatsApp (no email),
+hay diáspora/inversionistas extranjeros comprando proyectos turísticos (Punta Cana,
+Samaná, Las Terrenas), y existen beneficios legales que son argumento de cierre (Ley
+CONFOTUR 158-01, Ley 108-05 de Registro Inmobiliario). Se evaluó un documento
+estratégico con propuestas más ambiciosas (pgvector/Pinecone día uno, 4 "agentes"
+especializados con enrutamiento de modelos, notas de voz y PDFs desde el arranque) y
+se decidió **no** construir esa versión todavía — es complejidad de infraestructura
+que el tamaño actual del producto no necesita. El plan de abajo reutiliza al máximo
+la arquitectura de "1 agente + tools" que ya existe, y cada fase es aditiva: no
+depende de deshacer nada de una fase anterior.
+
+- **Fase 0 — Conectar la base de conocimiento al agente IA.** ✅ hecho (detalle abajo).
+- **Fase 1 — WhatsApp vía Evolution API** (fase 2 futura: Twilio WhatsApp Business
+  API oficial). Planificado, ver sección "Integración de WhatsApp" más abajo.
+  Pendiente de decidir: dónde hostear Evolution API y si cada agencia conecta su
+  propio número o se usa uno compartido de la plataforma.
+- **Fase 2 — Campos de mercado dominicano en `listings`**: `currency` (hoy no
+  existe — gran parte del inventario en RD se cotiza en USD), `confotur_eligible`,
+  `delivery_date` (proyectos en plano/pre-construcción).
+- **Fase 3 — Tool `calculate_roi`** para el agente: cálculo determinístico de
+  retorno sobre listings `vacation_rental` (que ya existen desde antes) — no un LLM
+  "adivinando" cifras financieras.
+- **Fase 4 — Generador de fichas/copy con IA** en el dashboard de Propiedades: una
+  herramienta interna (botón "Generar con IA"), no un agente conversacional — así no
+  compite en complejidad con el agente de WhatsApp/voz.
+- **Fase 5 — Notas de voz y PDFs por WhatsApp.** Se deja para después de que el
+  flujo de texto de la Fase 1 esté probado en producción; agregan trabajo real
+  (transcripción de audio, generación de PDF) que no es necesario para validar el
+  mercado.
+
+Por qué este orden no rompe nada: Fase 0 no toca WhatsApp ni listings; Fase 1 no
+toca listings ni el agente de voz existente (es un canal nuevo); Fase 2 son columnas
+nuevas con default, que Fase 1 y Fase 3 pueden usar después pero no necesitan de
+entrada; Fase 3 depende solo de datos que ya existen; Fase 4 es independiente de
+todo lo anterior; Fase 5 es la única que depende de que la Fase 1 ya esté en
+producción.
+
+### Fase 0 — Base de conocimiento conectada al agente IA (4 ago 2026) ✅
+
+`knowledge_documents` ya existía completo (dashboard "Conocimiento", CRUD, categorías)
+pero **nunca se leía en la sesión del agente** — `buildSystemPrompt()`
+(`src/ai/tools.ts`) solo recibía `business`, `agent` y `listings`. Tampoco existía ya
+una función `formatKnowledgeForPrompt` en `src/services/knowledge.ts` con un
+comentario diciendo que se usaba en el prompt del agente — pero no se llamaba desde
+ningún lado. Se conectó:
+
+- `src/app/api/agents/[agentId]/session/route.ts`: ahora también trae los documentos
+  de conocimiento del negocio (`listKnowledgeDocuments`) en paralelo a los listings,
+  y se los pasa a `buildSystemPrompt`.
+- `src/ai/tools.ts`: `buildSystemPrompt` acepta `knowledgeDocs` y los inyecta en el
+  prompt (reutilizando `formatKnowledgeForPrompt`) con una instrucción explícita de
+  que el agente solo puede afirmar datos legales/fiscales que estén en esos
+  documentos — pensado para poder cargar ahí el contenido sobre CONFOTUR (Ley 158-01)
+  y Ley 108-05 sin que el modelo invente cifras, plazos o porcentajes de exención.
+
+Se optó por **inyección directa en el prompt** (mismo patrón que ya se usa con
+`listings`) en vez de agregar una tool de búsqueda: con el volumen de documentos
+esperado por negocio (decenas, no miles) es más simple y más confiable — el modelo
+no puede "olvidarse" de llamar a una tool para buscar algo que ya está siempre
+presente. Si el volumen de conocimiento crece mucho (varias desarrolladoras, muchos
+proyectos), ahí se justifica agregar `pgvector` (extensión nativa de Postgres/
+Supabase, no un vendor externo como Pinecone) + una tool de búsqueda semántica — no
+antes.
+
+No requiere migración de esquema — usa `knowledge_documents` tal cual ya existía.
+`npx tsc --noEmit` y `npm run build` verificados sin errores.
+
 ## PRÓXIMO: Integración de WhatsApp (planificado — no implementado aún)
 
 **Por qué:** para el lanzamiento en República Dominicana, el email no es un canal

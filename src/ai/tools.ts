@@ -1,5 +1,6 @@
-import type { AiAgent, Business, Listing, RealtimeTool } from '@/types'
+import type { AiAgent, Business, KnowledgeDocument, Listing, RealtimeTool } from '@/types'
 import { listingPriceSuffix, isLandListing } from '@/lib/listingFormat'
+import { formatKnowledgeForPrompt } from '@/services/knowledge'
 
 // Tool definitions handed to the OpenAI Realtime session. Execution happens
 // server-side in POST /api/ai/tools — the browser only ever holds an
@@ -97,8 +98,10 @@ export function buildSystemPrompt(opts: {
   business: Business
   agent: AiAgent
   listings: Listing[]
+  knowledgeDocs?: KnowledgeDocument[]
 }): string {
-  const { business, agent, listings } = opts
+  const { business, agent, listings, knowledgeDocs = [] } = opts
+  const knowledgeText = formatKnowledgeForPrompt(knowledgeDocs)
 
   const listingSummaries = listings.length
     ? listings
@@ -127,6 +130,17 @@ export function buildSystemPrompt(opts: {
     'If the caller asks to speak with a human, or has a request you cannot handle, call request_callback with their',
     'name and phone number instead of guessing or ending the call unresolved.',
     'Never invent listing details, prices, or availability that the tools did not return.',
+    knowledgeText
+      ? [
+          '',
+          "Business knowledge base (policies, legal/tax facts, process notes specific to this business):",
+          knowledgeText,
+          '',
+          'Only state legal, tax, or financial facts (e.g. exemptions, deadlines, percentages) that appear',
+          'verbatim above. If the caller asks something legal/financial that is not covered here, say you are',
+          'not sure and offer request_callback instead of guessing.',
+        ].join('\n')
+      : '',
   ]
     .filter(Boolean)
     .join('\n')
