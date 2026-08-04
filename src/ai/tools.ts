@@ -100,10 +100,16 @@ export function buildSystemPrompt(opts: {
   listings: Listing[]
   knowledgeDocs?: KnowledgeDocument[]
   platformKnowledgeDocs?: PlatformKnowledgeDocument[]
+  channel?: 'voice' | 'text'
 }): string {
-  const { business, agent, listings, knowledgeDocs = [], platformKnowledgeDocs = [] } = opts
+  const { business, agent, listings, knowledgeDocs = [], platformKnowledgeDocs = [], channel = 'voice' } = opts
   const knowledgeText = formatKnowledgeForPrompt(knowledgeDocs)
   const platformKnowledgeText = formatKnowledgeForPrompt(platformKnowledgeDocs)
+  const mediumInstruction =
+    channel === 'voice'
+      ? 'Keep responses short and conversational — this is a phone call, not a chat.'
+      : 'Keep responses short — this is a WhatsApp chat. Use plain text (no markdown), short paragraphs, ' +
+        'and at most one relevant emoji per message, only when it fits naturally.'
 
   const listingSummaries = listings.length
     ? listings
@@ -120,8 +126,8 @@ export function buildSystemPrompt(opts: {
 
   return [
     `You are ${agent.name}, the ${agent.specialty} for ${business.name}, a real estate business.`,
-    `Personality: ${agent.personality}. Keep responses short and conversational — this is a phone call, not a chat.`,
-    agent.greeting_message ? `Open the call with: "${agent.greeting_message}"` : '',
+    `Personality: ${agent.personality}. ${mediumInstruction}`,
+    agent.greeting_message ? `Open the conversation with: "${agent.greeting_message}"` : '',
     '',
     'You can discuss the following listings (use search_listings / get_listing_details for specifics instead of guessing):',
     listingSummaries,
@@ -130,7 +136,7 @@ export function buildSystemPrompt(opts: {
     'then confirm their name and phone number before calling book_viewing. If they are not ready to book, still call',
     'capture_lead once you have their name and phone number so the business can follow up.',
     'If the caller asks to speak with a human, or has a request you cannot handle, call request_callback with their',
-    'name and phone number instead of guessing or ending the call unresolved.',
+    'name and phone number instead of guessing or leaving the conversation unresolved.',
     'Never invent listing details, prices, or availability that the tools did not return.',
     platformKnowledgeText
       ? [

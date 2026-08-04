@@ -572,75 +572,95 @@ antes de escribir con el cliente admin (service role), porque la tabla solo tien
 RLS de lectura pública. Enlace "Admin de plataforma" visible en el sidebar del
 dashboard solo para esas dos cuentas.
 
-## PRÓXIMO: Integración de WhatsApp (planificado — no implementado aún)
+## Fase 1 — Integración de WhatsApp (4 ago 2026) — código completo, falta el VPS
 
-**Por qué:** para el lanzamiento en República Dominicana, el email no es un canal
-confiable con la mayoría de usuarios (solo estudiantes/gente instruida lo revisa con
-frecuencia) — WhatsApp sí. Se agregará como **un canal más** del agente IA, sin tocar,
-desactivar ni reemplazar nada de lo que ya existe (voz realtime, widget, email de
-Resend, etc.).
+Implementada de punta a punta contra Evolution API (self-hosted). **No probada
+en vivo todavía** — Juan no tiene VPS aún; en cuanto lo contrate y despliegue
+Evolution API ahí, solo falta cargar `EVOLUTION_API_URL`/`EVOLUTION_API_KEY` en
+Vercel y probar el flujo real de conexión/mensajes. Todo lo demás (voz, widget,
+email) sigue intacto — WhatsApp es un canal más, no un reemplazo.
 
-### Proveedor — arrancar simple, migrar cuando haya clientes reales pagando
+### Esquema (migración 32, ya aplicada en producción)
 
-- **Fase 1 (MVP/validación): Evolution API**, self-hosted (Docker). Gratis, sin espera
-  de aprobación de Meta, usa el protocolo no oficial de WhatsApp Web multi-dispositivo
-  (Baileys). Riesgo real pero bajo con pocos negocios: Meta puede banear el número si
-  detecta patrones de spam/abuso.
-- **Fase 2 (producción con clientes pagando): Twilio WhatsApp Business API**, oficial.
-  Requiere verificación de negocio en Meta Business Manager y plantillas de mensaje
-  aprobadas para iniciar conversación fuera de la ventana de 24h. Más caro (cobra por
-  conversación) pero sin riesgo de ban y con soporte real de Meta/Twilio.
-- Z-API queda descartado por ahora: es pago y usa el mismo enfoque no oficial que
-  Evolution, sin ventaja clara sobre esa opción gratuita para la fase 1.
-- Diseñar una interfaz `WhatsappProvider` (conectar, enviar mensaje, recibir webhook)
-  para poder cambiar Evolution ⇄ Twilio sin reescribir el resto del sistema.
-
-### Cambios de esquema — todos aditivos, no rompen nada existente
-
-- `conversations.channel` ya existe y hoy solo permite
-  `'widget_voice' | 'widget_chat' | 'phone'` (`supabase/schema.sql` línea ~251) —
-  agregar `'whatsapp'` a ese check constraint. Toda la tabla `conversations` +
-  `conversation_messages` se reutiliza tal cual; Call Log, Analítica y Clientes ya
-  leen de ahí sin filtrar por canal, así que funcionan automáticamente en cuanto
-  existan filas con `channel = 'whatsapp'`.
-- `clients.source` — agregar `'whatsapp'` a su check constraint (hoy:
-  `ai_call, widget_chat, manual, website_form`).
-- Nueva tabla `whatsapp_connections`: `business_id` (FK única), `provider`
-  (`evolution` | `twilio`), `phone_number`, `instance_id`/`session_name`, `status`
-  (`connecting` | `connected` | `disconnected`), credenciales del proveedor. RLS igual
-  patrón que `widgets` (`is_business_owner`).
-- (Opcional, fase 2) columna `ai_agents.channels text[] default '{voice}'` para poder
-  asignar un agente a voz y/o WhatsApp de forma independiente, en vez de que todo
-  agente `live` sirva ambos canales automáticamente.
+- `conversations.channel` y `clients.source` ahora incluyen `'whatsapp'`. Call
+  Log, Analítica y Clientes ya funcionan para WhatsApp sin ningún cambio —
+  leen de `conversations`/`conversation_messages`/`clients` sin filtrar por
+  canal, igual que ya pasaba con el widget.
+- Nueva tabla `whatsapp_connections`: una conexión por negocio (`business_id`
+  único), `agent_id` (qué agente IA responde), `instance_name` +
+  `instance_token` (credenciales de la instancia en Evolution API — separadas
+  del `EVOLUTION_API_KEY` global, que solo crea/borra instancias), `status`
+  (`disconnected`/`connecting`/`connected`), `is_enabled`. RLS igual patrón
+  que `widgets` (`is_business_owner`).
 
 ### Backend
 
-- `src/services/whatsapp.ts`: conectar/leer/eliminar instancia con el proveedor,
-  generar QR de vinculación (Evolution) y enviar mensajes salientes.
-- `POST /api/whatsapp/webhook/[businessId]`: recibe mensajes entrantes (firma
-  verificada), crea/actualiza `clients` por teléfono, crea o continúa una
-  `conversation` (`channel: 'whatsapp'`), guarda cada mensaje en
-  `conversation_messages`.
-- El agente responde en **modo texto** (Chat Completions con function-calling) en vez
-  de OpenAI Realtime (voz), pero reutilizando **las mismas `REALTIME_TOOLS`** de
-  `src/ai/tools.ts` y el mismo handler `/api/ai/tools` — ya está desacoplado del
-  transporte (busca listings, chequea disponibilidad, agenda visita, pide callback),
-  así que no hay que duplicar lógica de negocio entre voz y WhatsApp.
+- `src/lib/evolutionApi.ts`: cliente REST de Evolution API v2 (crear
+  instancia, QR, estado de conexión, configurar webhook, enviar texto, borrar
+  instancia). Verificado contra la documentación oficial y ejemplos de la
+  comunidad — Evolution API ha cambiado contratos entre versiones mayores
+  antes, así que si algo falla al probar contra el VPS real, lo primero es
+  comparar contra `https://doc.evolution-api.com/v2`. Lanza
+  `EvolutionApiNotConfiguredError` si `EVOLUTION_API_URL`/`EVOLUTION_API_KEY`
+  no están seteadas, para que el dashboard muestre un mensaje claro en vez de
+  romperse.
+- `src/services/whatsapp.ts`: capa de negocio sobre esa tabla + ese cliente
+  (`connectWhatsapp`, `refreshWhatsappStatus`, `disconnectWhatsapp`,
+  `sendWhatsappMessage`, etc.).
+- **Refactor sin cambio de comportamiento**: la ejecución de tools del agente
+  (`search_listings`, `book_viewing`, `capture_lead`, `request_callback`,
+  etc.) se extrajo de `/api/ai/tools/route.ts` a `src/ai/executeTool.ts`
+  (`executeAiTool()`), para que la llamada de voz/widget y WhatsApp compartan
+  exactamente la misma lógica de negocio — nunca puede divergir por canal.
+  `clients.source` ahora se pasa como parámetro (`ai_call` para voz,
+  `whatsapp` para WhatsApp) en vez de estar hardcodeado.
+- `src/ai/textAgent.ts`: el agente en **modo texto** — un loop de function-
+  calling contra OpenAI Chat Completions (`gpt-4o-mini`, sin necesidad de
+  enrutamiento de modelos) que reutiliza las mismas `REALTIME_TOOLS` (convertidas
+  al formato de Chat Completions) y el mismo `executeAiTool()` que la voz.
+- `POST /api/whatsapp/webhook/[businessId]`: recibe `MESSAGES_UPSERT` de
+  Evolution API, resuelve/crea el `client` por teléfono, reutiliza la
+  conversación de WhatsApp abierta si el último mensaje fue hace menos de 6h
+  (si no, cierra la anterior como `completed` y abre una nueva — como una
+  llamada nueva), guarda el mensaje entrante, corre el agente de texto, guarda
+  y envía la respuesta. Incluye un delay aleatorio de 2-5s antes de responder
+  (reduce la señal de "esto es un bot" — mismo criterio anti-baneo que ya
+  estaba planificado). Sin verificación de firma (Evolution API no firma sus
+  webhooks) — el `businessId` en la URL más validar que la conexión existe y
+  está activa es el límite de confianza aceptado para esta fase.
+- `buildSystemPrompt()` ahora recibe `channel: 'voice' | 'text'` para no
+  decirle a un chat de WhatsApp "esto es una llamada telefónica".
 
 ### Dashboard
 
-- Nueva sección lateral "WhatsApp" (junto a Widget): estado de conexión, botón
-  "Conectar" (QR para Evolution / setup guiado para Twilio), selector de agente IA
-  asignado, toggle activar/desactivar — mismo patrón visual que `/dashboard/widget`.
+- `/dashboard/whatsapp` + `src/components/WhatsappManager.tsx`: selector de
+  agente IA → "Conectar WhatsApp" → QR (se refresca solo cada 4s hasta quedar
+  `connected`) → una vez conectado, número vinculado, cambiar de agente,
+  activar/desactivar respuesta automática, desconectar. Si
+  `EVOLUTION_API_URL`/`EVOLUTION_API_KEY` no están configuradas, el botón
+  "Conectar" muestra una tarjeta explicando exactamente eso (falta el VPS) en
+  vez de fallar en silencio.
+- Nuevo ítem "WhatsApp" en el sidebar, junto a Widget.
 
-### Pendiente de decidir antes de implementar
+### Pendiente — lo único que falta para que esto funcione en producción
 
-- Dónde hostear Evolution API: necesita un servidor persistente con Docker (mantiene
-  la sesión de WhatsApp Web viva 24/7) — Vercel (serverless) no sirve para esto.
-  Opciones: Railway, Fly.io, un droplet de DigitalOcean.
-- Un número de WhatsApp por agencia (cada negocio vincula su propio WhatsApp) vs. un
-  número compartido de la plataforma con enrutamiento por negocio — cambia el diseño
-  del onboarding.
+1. **Contratar un VPS** (Railway, Fly.io, un droplet de DigitalOcean — lo que
+   sea, necesita Docker y estar prendido 24/7; Vercel no sirve porque
+   Evolution API mantiene viva la sesión de WhatsApp Web) y desplegar
+   Evolution API ahí.
+2. Cargar `EVOLUTION_API_URL` y `EVOLUTION_API_KEY` en Vercel
+   (production/preview/development) — mismo patrón que las demás API keys.
+3. Probar el flujo real una vez: conectar (escanear QR), mandar un mensaje de
+   WhatsApp de prueba, confirmar que el agente responde y que
+   `conversations`/`clients` se llenan igual que con el widget.
+4. Verificar los payloads reales del webhook de Evolution API contra lo que
+   asume `src/app/api/whatsapp/webhook/[businessId]/route.ts`
+   (`event`/`data.key.remoteJid`/`data.message.conversation`) — se armó a
+   partir de la documentación pública, no de una instancia real corriendo.
+
+`npx tsc --noEmit` y `npm run build` verificados sin errores — todo compila y
+las rutas existen; lo que no se pudo probar es la integración end-to-end real
+con un servidor Evolution API vivo, por no tener VPS todavía.
 
 ## VISIÓN A LARGO PLAZO (clave, no perder)
 

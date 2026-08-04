@@ -796,3 +796,45 @@ alter table platform_knowledge_documents enable row level security;
 drop policy if exists "Anyone can view platform knowledge" on platform_knowledge_documents;
 create policy "Anyone can view platform knowledge"
   on platform_knowledge_documents for select using (true);
+
+-- 32. WHATSAPP (Evolution API integration). Adds 'whatsapp' as a channel/source
+-- value so Call Log, Analytics, and Clients — which already read from
+-- conversations/conversation_messages/clients without filtering by channel —
+-- work for WhatsApp automatically, exactly like they did for the widget.
+alter table conversations drop constraint if exists conversations_channel_check;
+alter table conversations add constraint conversations_channel_check
+  check (channel in ('widget_voice','widget_chat','phone','whatsapp'));
+
+alter table clients drop constraint if exists clients_source_check;
+alter table clients add constraint clients_source_check
+  check (source in ('ai_call','widget_chat','manual','website_form','whatsapp'));
+
+-- One WhatsApp connection per business (own number, own instance on the
+-- Evolution API server). instance_token is the per-instance token Evolution
+-- API issues on creation — separate from the global EVOLUTION_API_KEY, which
+-- only manages instance lifecycle (create/delete), never sends messages.
+create table if not exists whatsapp_connections (
+  id              uuid primary key default gen_random_uuid(),
+  business_id     uuid not null references businesses(id) on delete cascade unique,
+  agent_id        uuid references ai_agents(id) on delete set null,
+  provider        text not null default 'evolution' check (provider in ('evolution')),
+  instance_name   text not null unique,
+  instance_token  text,
+  phone_number    text,
+  status          text not null default 'disconnected'
+    check (status in ('disconnected','connecting','connected')),
+  is_enabled      boolean not null default true,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists idx_whatsapp_connections_business_id on whatsapp_connections (business_id);
+
+create trigger update_whatsapp_connections_updated_at
+  before update on whatsapp_connections
+  for each row execute function update_updated_at_column();
+
+alter table whatsapp_connections enable row level security;
+
+create policy "Business owners can manage their whatsapp connection"
+  on whatsapp_connections for all using (is_business_owner(business_id));

@@ -12,6 +12,7 @@ export type Appointment = Tables<'appointments'>
 export type BusinessAvailability = Tables<'business_availability'>
 export type KnowledgeDocument = Tables<'knowledge_documents'>
 export type PlatformKnowledgeDocument = Tables<'platform_knowledge_documents'>
+export type WhatsappConnection = Tables<'whatsapp_connections'>
 export type Widget = Tables<'widgets'>
 export type WidgetWithAgent = Widget & { agent_name: string | null }
 export type Website = Tables<'websites'>
