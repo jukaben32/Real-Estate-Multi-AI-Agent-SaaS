@@ -441,6 +441,76 @@ signup en este entorno porque el navegador del sandbox no tiene salida de red ha
 `supabase.co` (se recomienda probarlo una vez desplegado). `npx tsc --noEmit` y
 `npm run build` sin errores.
 
+## PRÓXIMO: Integración de WhatsApp (planificado — no implementado aún)
+
+**Por qué:** para el lanzamiento en República Dominicana, el email no es un canal
+confiable con la mayoría de usuarios (solo estudiantes/gente instruida lo revisa con
+frecuencia) — WhatsApp sí. Se agregará como **un canal más** del agente IA, sin tocar,
+desactivar ni reemplazar nada de lo que ya existe (voz realtime, widget, email de
+Resend, etc.).
+
+### Proveedor — arrancar simple, migrar cuando haya clientes reales pagando
+
+- **Fase 1 (MVP/validación): Evolution API**, self-hosted (Docker). Gratis, sin espera
+  de aprobación de Meta, usa el protocolo no oficial de WhatsApp Web multi-dispositivo
+  (Baileys). Riesgo real pero bajo con pocos negocios: Meta puede banear el número si
+  detecta patrones de spam/abuso.
+- **Fase 2 (producción con clientes pagando): Twilio WhatsApp Business API**, oficial.
+  Requiere verificación de negocio en Meta Business Manager y plantillas de mensaje
+  aprobadas para iniciar conversación fuera de la ventana de 24h. Más caro (cobra por
+  conversación) pero sin riesgo de ban y con soporte real de Meta/Twilio.
+- Z-API queda descartado por ahora: es pago y usa el mismo enfoque no oficial que
+  Evolution, sin ventaja clara sobre esa opción gratuita para la fase 1.
+- Diseñar una interfaz `WhatsappProvider` (conectar, enviar mensaje, recibir webhook)
+  para poder cambiar Evolution ⇄ Twilio sin reescribir el resto del sistema.
+
+### Cambios de esquema — todos aditivos, no rompen nada existente
+
+- `conversations.channel` ya existe y hoy solo permite
+  `'widget_voice' | 'widget_chat' | 'phone'` (`supabase/schema.sql` línea ~251) —
+  agregar `'whatsapp'` a ese check constraint. Toda la tabla `conversations` +
+  `conversation_messages` se reutiliza tal cual; Call Log, Analítica y Clientes ya
+  leen de ahí sin filtrar por canal, así que funcionan automáticamente en cuanto
+  existan filas con `channel = 'whatsapp'`.
+- `clients.source` — agregar `'whatsapp'` a su check constraint (hoy:
+  `ai_call, widget_chat, manual, website_form`).
+- Nueva tabla `whatsapp_connections`: `business_id` (FK única), `provider`
+  (`evolution` | `twilio`), `phone_number`, `instance_id`/`session_name`, `status`
+  (`connecting` | `connected` | `disconnected`), credenciales del proveedor. RLS igual
+  patrón que `widgets` (`is_business_owner`).
+- (Opcional, fase 2) columna `ai_agents.channels text[] default '{voice}'` para poder
+  asignar un agente a voz y/o WhatsApp de forma independiente, en vez de que todo
+  agente `live` sirva ambos canales automáticamente.
+
+### Backend
+
+- `src/services/whatsapp.ts`: conectar/leer/eliminar instancia con el proveedor,
+  generar QR de vinculación (Evolution) y enviar mensajes salientes.
+- `POST /api/whatsapp/webhook/[businessId]`: recibe mensajes entrantes (firma
+  verificada), crea/actualiza `clients` por teléfono, crea o continúa una
+  `conversation` (`channel: 'whatsapp'`), guarda cada mensaje en
+  `conversation_messages`.
+- El agente responde en **modo texto** (Chat Completions con function-calling) en vez
+  de OpenAI Realtime (voz), pero reutilizando **las mismas `REALTIME_TOOLS`** de
+  `src/ai/tools.ts` y el mismo handler `/api/ai/tools` — ya está desacoplado del
+  transporte (busca listings, chequea disponibilidad, agenda visita, pide callback),
+  así que no hay que duplicar lógica de negocio entre voz y WhatsApp.
+
+### Dashboard
+
+- Nueva sección lateral "WhatsApp" (junto a Widget): estado de conexión, botón
+  "Conectar" (QR para Evolution / setup guiado para Twilio), selector de agente IA
+  asignado, toggle activar/desactivar — mismo patrón visual que `/dashboard/widget`.
+
+### Pendiente de decidir antes de implementar
+
+- Dónde hostear Evolution API: necesita un servidor persistente con Docker (mantiene
+  la sesión de WhatsApp Web viva 24/7) — Vercel (serverless) no sirve para esto.
+  Opciones: Railway, Fly.io, un droplet de DigitalOcean.
+- Un número de WhatsApp por agencia (cada negocio vincula su propio WhatsApp) vs. un
+  número compartido de la plataforma con enrutamiento por negocio — cambia el diseño
+  del onboarding.
+
 ## VISIÓN A LARGO PLAZO (clave, no perder)
 
 InmobilIACall no debe ser solo "SaaS de bienes raíces", sino una **base reutilizable
