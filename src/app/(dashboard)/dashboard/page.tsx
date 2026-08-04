@@ -17,11 +17,13 @@ import { listListingsForBusiness } from '@/services/listings'
 import { listAppointmentsForBusiness } from '@/services/appointments'
 import { listConversationsForBusiness } from '@/services/conversations'
 import { listAgentsForBusiness } from '@/services/aiAgents'
+import { listWidgetsForBusiness } from '@/services/widgets'
 import { formatDateTime } from '@/lib/formatDate'
 import { APPOINTMENT_STATUS_LABELS, APPOINTMENT_STATUS_STYLES } from '@/lib/appointmentFormat'
 import { listingPriceSuffix } from '@/lib/listingFormat'
 import { OverviewTrendChart, type OverviewTrendPoint } from '@/components/OverviewTrendChart'
 import { RefreshButton } from '@/components/RefreshButton'
+import { DashboardWelcomeSetup } from '@/components/DashboardWelcomeSetup'
 
 const DAYS_BACK = 14
 
@@ -52,16 +54,33 @@ export default async function OverviewPage() {
   const business = await getBusinessForOwner(supabase, user!.id)
   if (!business) return null
 
-  const [analytics, listings, appointments, conversations, agents] = await Promise.all([
+  const [analytics, listings, appointments, conversations, agents, widgets] = await Promise.all([
     getDashboardAnalytics(supabase, business.id),
     listListingsForBusiness(supabase, business.id),
     listAppointmentsForBusiness(supabase, business.id),
     listConversationsForBusiness(supabase, business.id),
     listAgentsForBusiness(supabase, business.id),
+    listWidgetsForBusiness(supabase, business.id),
   ])
 
   const available = listings.filter((l) => l.status === 'available')
   const liveAgents = agents.filter((a) => a.status === 'live')
+
+  // A brand-new business has zero listings/agents/widgets, so every stat below
+  // would read 0 — show the guided setup checklist instead until it's done.
+  const listingsDone = listings.length > 0
+  const agentDone = liveAgents.length > 0
+  const widgetDone = widgets.some((w) => w.is_enabled)
+  if (!listingsDone || !agentDone || !widgetDone) {
+    return (
+      <DashboardWelcomeSetup
+        businessName={business.name}
+        listingsDone={listingsDone}
+        agentDone={agentDone}
+        widgetDone={widgetDone}
+      />
+    )
+  }
 
   const completedCalls = conversations.filter((c) => c.status === 'completed')
   const avgDurationSeconds = completedCalls.length

@@ -409,6 +409,38 @@ existían).
 
 `npx tsc --noEmit` y `npm run build` verificados sin errores antes de entregar.
 
+### 16. Pantalla de bienvenida/setup para negocios nuevos (4 ago 2026)
+El Overview (`/dashboard`) mostraba directamente las stats/gráficas en 0 para un
+negocio recién creado, sin ningún onboarding guiado — a diferencia del dashboard de
+referencia, que en ese estado muestra un banner "Welcome to EstateCall AI" con un
+checklist de 3 pasos para salir en vivo.
+
+Se agregó `src/components/DashboardWelcomeSetup.tsx` y se conectó en
+`src/app/(dashboard)/dashboard/page.tsx`: mientras el negocio no tenga **al menos
+una propiedad**, **un agente IA en estado `live`** y **un widget activo
+(`is_enabled`)**, el Overview reemplaza las stats por esta pantalla —
+
+- Banner "Bienvenido a InmobilIACall, {negocio}" con badge "CONFIGURACIÓN REQUERIDA"
+  y botón "Comenzar configuración" que enlaza al primer paso pendiente.
+- 3 tarjetas de paso (Agregar propiedades → `/dashboard/listings`, Crear agente de
+  voz IA → `/dashboard/ai-agents`, Insertar en el sitio web → `/dashboard/widget`),
+  cada una con contador "N / 3 completados" y checkmark ✓ cuando ese paso ya está
+  hecho (verificado contra datos reales, no simulado).
+- Sección "Lo que obtienes después de la configuración" con las 4 mismas tarjetas
+  de beneficios de la referencia (propiedades en vivo, reserva automática de
+  visitas, transcripciones, analítica en vivo).
+
+En cuanto los 3 pasos se completan, `/dashboard` vuelve a mostrar el Overview normal
+(stats, gráfica de tendencia, propiedades, visitas recientes) sin tocar nada más.
+Copy en español y con la marca InmobilIACall (no el texto en inglés "EstateCall AI"
+de la captura de referencia), consistente con el resto de la app ya rebrandeada.
+
+Verificado renderizando el componente aislado en ambos estados (0/3 y 2/3
+completados) vía Playwright contra `next dev` — no se pudo probar el flujo real de
+signup en este entorno porque el navegador del sandbox no tiene salida de red hacia
+`supabase.co` (se recomienda probarlo una vez desplegado). `npx tsc --noEmit` y
+`npm run build` sin errores.
+
 ## VISIÓN A LARGO PLAZO (clave, no perder)
 
 InmobilIACall no debe ser solo "SaaS de bienes raíces", sino una **base reutilizable
