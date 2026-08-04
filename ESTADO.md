@@ -556,10 +556,21 @@ Se agregó una tabla nueva, separada de `knowledge_documents`, **sin `business_i
   cargarlo de nuevo cada vez que afilie una nueva agencia.
 - `src/types/database.ts` / `src/types/index.ts`: tipo `PlatformKnowledgeDocument`.
 
-Pendiente para más adelante (no bloqueante): una pantalla de administración de
-plataforma (fuera del dashboard de cada negocio) para editar
-`platform_knowledge_documents` sin tener que pasar por SQL directo. `npx tsc
---noEmit` y `npm run build` verificados sin errores.
+`npx tsc --noEmit` y `npm run build` verificados sin errores.
+
+**Pantalla de administración agregada (4 ago 2026) ✅ — Fase 0b cerrada.**
+`/admin/knowledge`, fuera del dashboard de cada negocio (no confundir con
+`/dashboard`, que es por negocio afiliado). Protegida por
+`PLATFORM_ADMIN_EMAILS` (allowlist por variable de entorno — no existe un rol de
+"admin de plataforma" en el esquema, y no hacía falta construir uno para dos
+cuentas). Ya cargada en Vercel (production/preview/development) con
+`jcbjm03@gmail.com,casilla.bethania@gmail.com` — los dos correos confirmados.
+CRUD completo (crear/editar/eliminar) contra `platform_knowledge_documents` desde
+`src/components/PlatformKnowledgeManager.tsx`; las rutas API
+(`/api/admin/knowledge`, `/api/admin/knowledge/[documentId]`) verifican el email
+antes de escribir con el cliente admin (service role), porque la tabla solo tiene
+RLS de lectura pública. Enlace "Admin de plataforma" visible en el sidebar del
+dashboard solo para esas dos cuentas.
 
 ## PRÓXIMO: Integración de WhatsApp (planificado — no implementado aún)
 
