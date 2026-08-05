@@ -441,6 +441,41 @@ signup en este entorno porque el navegador del sandbox no tiene salida de red ha
 `supabase.co` (se recomienda probarlo una vez desplegado). `npx tsc --noEmit` y
 `npm run build` sin errores.
 
+## Fix: editar Agentes IA fallaba con "No se pudo guardar el agente" (5 ago 2026)
+
+Reportado por Juan: al editar el agente "Alexis" de `sophia.tec` (después de
+cambiarle la voz/personalidad), tanto el paso 1 como el paso 2 del modal de
+edición mostraban "No se pudo guardar el agente" y no dejaba avanzar. Causa
+raíz confirmada reproduciendo el `PATCH` directo contra la tabla real:
+`AgentEditModal.tsx` mandaba `greetingMessage`/`systemPrompt` (camelCase) tal
+cual al PATCH, que los pasaba sin mapear a `.update()` — esas columnas no
+existen así en `ai_agents` (son `greeting_message`/`system_prompt`), Postgres
+devolvía `PGRST204` y la ruta no tenía `try/catch`, así que el frontend solo
+veía un 500 sin cuerpo y mostraba el mensaje genérico de respaldo.
+
+`PATCH /api/agents/[agentId]` ahora valida con el mismo `aiAgentSchema`
+(camelCase) que ya usa la creación y mapea a snake_case adentro — así ningún
+caller necesita conocer los nombres reales de columna — y devuelve el mensaje
+de error real si algo falla, en vez de un 500 vacío. `AgentStudio.tsx` (que sí
+mapeaba a mano, correctamente) se simplificó para mandar el mismo formato que
+`AgentEditModal`. Sin migración de esquema — era un bug de la ruta, no de la
+base de datos.
+
+De paso, se reconstruyó `AgentLiveTest.tsx` ("Probar en vivo" dentro de Agent
+Studio) para igualar el dashboard de referencia: layout de dos columnas
+(panel de prueba + transcripción en vivo), tarjeta del agente con badge de
+estado, botón circular de micrófono con anillo de pulso durante la llamada,
+lista de consejos, y una pestaña adicional "Agendar cita" que reutiliza
+`WidgetBookingPanel` (el mismo flujo del widget público) para probar el
+booking sin necesidad de hablar por voz. La funcionalidad real (WebRTC,
+transcripción, tools del agente) no cambió — solo la presentación, que antes
+era mucho más simple que la referencia.
+
+`npx tsc --noEmit` y `npm run build` sin errores; verificado visualmente con
+Playwright contra datos de ejemplo (no se pudo hacer una llamada de voz real
+end-to-end en este entorno por la misma restricción de red del sandbox hacia
+Supabase/OpenAI).
+
 ## HOJA DE RUTA: Adaptación al mercado de República Dominicana (4 ago 2026)
 
 Contexto de negocio: más del 90% de los leads en RD llegan por WhatsApp (no email),
